@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pbpk-lite"
+version = "0.0.2"
+keywords = ["pbpk", "pharmacokinetics", "model"]
+authors = [
+  { name="Gregor Čekada", email="cekada.gregor@gmail.com" },
+]
+description = "This is a simple implementation of PBPK modeling in python."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "scipy>=1.12.0",
+    "numpy>=2.0.0",
+    "matplotlib>=3.8.0",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/cekadagregor/pbpk-lite"
+Issues = "https://github.com/cekadagregor/pbpk-lite/issues"
