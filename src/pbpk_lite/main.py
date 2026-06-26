@@ -46,7 +46,7 @@ class model:
     >>> m.set_patient(bw=70)
     >>> doses = (10,)
     >>> times = (0, 24)
-    >>> t, c = m.solve(doses, times)
+    >>> t, c = m.simulate(doses, times)
     """
     def __init__(self):
         """
@@ -179,9 +179,9 @@ class model:
         self.elimination = elimination
         self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
     
-    def solve(self, doses, times):
+    def simulate(self, doses, times):
         """
-        Set the administration regime and solve the system of ODEs.
+        Set the administration regime and simulate the system of ODEs.
         
         The `times` array must contain one more time point than the `doses`
         sequence. Each dose at index `i` is administered at `times[i]`, and

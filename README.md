@@ -39,14 +39,14 @@ m.set_elimination(cl_l=10, cl_k=0)
 doses = [10]
 times = [0, 24]
 
-t, c = m.solve(doses, times)
+t, c = m.simulate(doses, times)
 print(t)
 print(c.shape)
 ```
 
 ## Dosing Schedule
 
-The `solve()` method expects:
+The `simulate()` method expects:
 
 - `doses`: array-like of administered doses
 - `times`: array-like of dosing times plus a final endpoint
@@ -89,9 +89,9 @@ Set patient physiological parameters using body weight in kilograms.
 
 Set linear clearance from liver and kidney compartments.
 
-#### `solve(doses, times)`
+#### `simulate(doses, times)`
 
-Solve the PBPK model and return time points `t` and compartment concentrations `c`.
+Simulate the PBPK model and return time points `t` and compartment concentrations `c`.
 
 ## License
 
