@@ -4,7 +4,7 @@
 
 It provides a simple programmatic interface for defining substance properties, patient physiology, elimination kinetics, and solving the resulting ODE system.
 
-The implementation is intended to be used with a consistent unit system based on milliliters (mL) for amounts and volumes and hours for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
+The implementation is intended to be used with a consistent unit system based on mass units for doses and amounts, milliliters (mL) for volumes, and hours for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
 
 ## Features
 

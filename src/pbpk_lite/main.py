@@ -21,8 +21,8 @@ class model:
     substance properties, patient parameters, and drug elimination pathways.
     It integrates partition coefficients, blood flows, tissue volumes, and
     elimination kinetics to solve the system of ordinary differential equations.
-    The implementation assumes a consistent unit system based on mL for
-    amounts and volumes and hours for time.
+    The implementation assumes a consistent unit system based on mass units
+    for doses and amounts, mL for volumes, and hours for time.
     
     Attributes
     ----------
