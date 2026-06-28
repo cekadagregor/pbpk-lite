@@ -8,7 +8,7 @@ and elimination pathways.
 
 import numpy as np
 from .distribution_params import V_function, Q_function, partition_model
-from .graph import graph_whole_helper
+from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_helper
 from .solve import solver
 from .ode_system import system_generator
 
@@ -179,7 +179,7 @@ class model:
         self.elimination = elimination
         self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
     
-    def simulate(self, doses, times):
+    def simulate(self, doses, times, route_of_administration='iv'):
         """
         Set the administration regime and simulate the system of ODEs.
         
@@ -194,6 +194,11 @@ class model:
         times : array-like
             A list of times at which doses are given, plus a final endpoint.
             This array must have length `len(doses) + 1`.
+        route_of_administration : {'iv', 'ia', 'inh'}, optional
+            Route used to administer each dose. 'iv' injects the dose into
+            the venous blood compartment, 'ia' into the arterial blood
+            compartment, and 'inh' into the lung compartment. The default is
+            'iv'.
         
         Returns
         -------
@@ -201,9 +206,17 @@ class model:
             Times at which concentrations are calculated.
         c : ndarray
             Concentrations in each tissue at the given times.
+        
+        Examples
+        --------
+        >>> m = model()
+        >>> m.set_substance(log_p=6.97, fu=0.0022448)
+        >>> m.set_patient(bw=70)
+        >>> t, c = m.simulate([10], [0, 24], route_of_administration='iv')
+        >>> t, c = m.simulate([10], [0, 24], route_of_administration='inh')
         """
 
-        self.t, self.c = solver(self.odes, doses, times, self.volumes)
+        self.t, self.c = solver(self.odes, doses, times, self.volumes, route_of_administration)
         return self.t, self.c
         
     def graph_whole(self, name):
@@ -216,3 +229,29 @@ class model:
             File path to save the figure.
         """
         graph_whole_helper(self.t, self.c, name)
+
+    def graph_venous(self, name, limit_of_detection=None):
+        """
+        Graph the concentrations in the venous blood compartment and save the figure.
+
+        Parameters
+        ----------
+        name : str
+            File path to save the figure.
+        limit_of_detection : float, optional
+            Limit of detection to be indicated on the graph.
+        """
+        graph_venous_helper(self.t, self.c, name, limit_of_detection)
+
+    def graph_compartments(self, compartments, name):
+        """
+        Graph the concentrations in selected compartments and save the figure.
+
+        Parameters
+        ----------
+        compartments : list of str or int
+            List of compartment names or indices to be graphed.
+        name : str
+            File path to save the figure.
+        """
+        graph_compartments_helper(self.t, self.c, compartments, name)

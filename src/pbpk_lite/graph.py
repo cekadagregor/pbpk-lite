@@ -25,3 +25,23 @@ def graph_whole_helper(time, concentrations, save_as):
         axs[i].set_facecolor('#F2F2F2')
         comp += 1
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
+
+def graph_venous_helper(time, concentrations, save_as, limit_of_detection=None):
+    plt.rcParams['font.size'] = 8
+    fig, axs = plt.subplots(1, 1, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
+    axs.plot(time, concentrations[15, :])
+    if limit_of_detection is not None:
+        axs.axhline(y=limit_of_detection, color='r', linestyle='--')
+    axs.set_title(identify_compartment(15))
+    axs.set_facecolor('#F2F2F2')
+    plt.savefig(save_as, dpi=300, bbox_inches="tight")
+
+def graph_compartments_helper(time, concentrations, compartments, save_as):
+    plt.rcParams['font.size'] = 8
+    fig, axs = plt.subplots(1, 1, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
+    for compartment in compartments:
+        axs.plot(time, concentrations[identify_compartment(compartment), :], label=compartment)
+    axs.set_title('Selected Compartments')
+    axs.set_facecolor('#F2F2F2')
+    axs.legend()
+    plt.savefig(save_as, dpi=300, bbox_inches="tight")

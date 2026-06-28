@@ -10,7 +10,8 @@ It provides a simple programmatic interface for defining substance properties, p
 - Patient blood flows and tissue volumes derived from body weight
 - Linear liver and kidney elimination pathways
 - ODE solution via `scipy.integrate.solve_ivp`
-- Simple plotting helper for concentration visualization
+- Plotting helpers for whole-model, venous-blood, and selected-compartment concentration profiles
+- Support for different administration routes, including intravenous, intra-arterial, and inhalation dosing
 
 ## Installation
 
@@ -39,9 +40,29 @@ m.set_elimination(cl_l=10, cl_k=0)
 doses = [10]
 times = [0, 24]
 
-t, c = m.simulate(doses, times)
+t, c = m.simulate(doses, times, route_of_administration='iv')
 print(t)
 print(c.shape)
+
+m.graph_whole('concentrations.png')
+m.graph_venous('venous.png', limit_of_detection=1.0)
+m.graph_compartments(['liver', 'kidney'], 'selected.png')
+```
+
+## Route of Administration
+
+The `simulate()` method accepts a `route_of_administration` argument to control where each dose is introduced into the model.
+
+Supported values are:
+
+- `iv`: intravenous dosing into the venous blood compartment (default)
+- `ia`: intra-arterial dosing into the arterial blood compartment
+- `inh`: inhalation dosing into the lung compartment
+
+Example:
+
+```python
+m.simulate([10], [0, 24], route_of_administration='inh')
 ```
 
 ## Dosing Schedule
@@ -89,9 +110,23 @@ Set patient physiological parameters using body weight in kilograms.
 
 Set linear clearance from liver and kidney compartments.
 
-#### `simulate(doses, times)`
+#### `simulate(doses, times, route_of_administration='iv')`
 
 Simulate the PBPK model and return time points `t` and compartment concentrations `c`.
+
+- `route_of_administration`: administration route used for each dose (`'iv'`, `'ia'`, or `'inh'`)
+
+#### `graph_whole(name)`
+
+Save a multi-panel plot of concentrations across all compartments.
+
+#### `graph_venous(name, limit_of_detection=None)`
+
+Save a plot of venous blood concentrations, optionally marking a detection limit.
+
+#### `graph_compartments(compartments, name)`
+
+Save a plot of selected compartments by name or index.
 
 ## License
 

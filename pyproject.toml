@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pbpk-lite"
-version = "1.0.0"
+version = "1.1.0"
 keywords = ["pbpk", "pharmacokinetics", "model"]
 authors = [
   { name="Gregor Čekada", email="cekada.gregor@gmail.com" },

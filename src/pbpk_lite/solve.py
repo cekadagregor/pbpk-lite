@@ -1,7 +1,7 @@
 from scipy.integrate import solve_ivp
 import numpy as np
 
-def solver(ode_system, doses, times, volumes):
+def solver(ode_system, doses, times, volumes, route_of_administration):
     t_full = np.array([])
     a_full = np.array([[] for i in range(16)])
 
@@ -12,7 +12,14 @@ def solver(ode_system, doses, times, volumes):
             a0 = np.zeros(16)
         else:
             a0 = a_full[:, -1]
-        a0[15] += dose # iv_bolus
+
+        if route_of_administration == 'iv':
+            index = 15  
+        elif route_of_administration == 'ia':
+            index = 0  
+        elif route_of_administration == 'inh':
+            index = 7
+        a0[index] += dose
 
         sol = solve_ivp(ode_system, time_interval, a0)
         t_partial = sol.t
