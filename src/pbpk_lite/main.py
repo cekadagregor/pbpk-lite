@@ -21,6 +21,8 @@ class model:
     substance properties, patient parameters, and drug elimination pathways.
     It integrates partition coefficients, blood flows, tissue volumes, and
     elimination kinetics to solve the system of ordinary differential equations.
+    The implementation assumes a consistent unit system based on mL for
+    amounts and volumes and hours for time.
     
     Attributes
     ----------
@@ -185,7 +187,8 @@ class model:
         
         The `times` array must contain one more time point than the `doses`
         sequence. Each dose at index `i` is administered at `times[i]`, and
-        the final entry in `times` is the last observation time.
+        the final entry in `times` is the last observation time. The time
+        values are interpreted in hours.
         
         Parameters
         ----------

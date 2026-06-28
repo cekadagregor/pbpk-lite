@@ -4,6 +4,8 @@
 
 It provides a simple programmatic interface for defining substance properties, patient physiology, elimination kinetics, and solving the resulting ODE system.
 
+The implementation is intended to be used with a consistent unit system based on milliliters (mL) for amounts and volumes and hours for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
+
 ## Features
 
 - Substance partition coefficient calculation using logP and fraction unbound
@@ -73,7 +75,7 @@ The `simulate()` method expects:
 - `times`: array-like of dosing times plus a final endpoint
 
 Important: `times` must have exactly one more element than `doses`.
-Each dose at index `i` is administered at `times[i]`, and the final value in `times` is the last observation or endpoint.
+Each dose at index `i` is administered at `times[i]`, and the final value in `times` is the last observation or endpoint. Times are interpreted in hours, so dosing schedules and simulation endpoints should be provided in hours.
 
 Example with one dose:
 
