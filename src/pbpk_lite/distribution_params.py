@@ -4,7 +4,6 @@ V_a = np.array((143, 124, 20.7, 23.6, 3.8, 4.4, 24.1, 16.7, 429, 1.2, 111, 2.7, 
 def V_function(bw): return V_a * bw
 
 Q_a = np.array((3.7, 3.6, 10, 13, 2.14, 15.7, 21, 71, 10.7, 1.9, 4.3, 1.1, 0.56, 0.04)) # mL/min/kg
-Q_a = Q_a * 60 # mL/h/kg
 def Q_function(bw): return Q_a * (bw**0.75)
 
 # phospholipid, neutral lipid, water
