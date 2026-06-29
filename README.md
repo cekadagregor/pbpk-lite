@@ -23,12 +23,6 @@ Install from PyPI:
 pip install pbpk-lite
 ```
 
-Install from source:
-
-```bash
-pip install .
-```
-
 ## Quick Start
 
 ```python
