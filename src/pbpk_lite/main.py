@@ -11,7 +11,7 @@ from .distribution_params import V_function, Q_function, partition_model
 from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_helper
 from .solve import solver
 from .ode_system import system_generator
-
+from .elimination import clearance_helper
 
 class model:
     """
@@ -69,19 +69,13 @@ class model:
         logp = 6.97
         fu = 0.0022448
         bw = 70
+        cl_l = 748.6643482986731
+        cl_k = 0
         self.partition_coefficients = partition_model(logp, fu)
         self.blood_flows = Q_function(bw)
         self.volumes = V_function(bw)
-
-        cl_k = 0
-        cl_l = 10
-        def elimination(c):
-            outflow = np.zeros(16)
-            outflow[5] += cl_k*c[5]
-            outflow[6] += cl_l*c[6]
-            return outflow
-
-        self.elimination = elimination
+        self.elimination = clearance_helper(cl_l, cl_k)
+        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
 
     def set_substance(self, log_p, fu):
         """
@@ -172,13 +166,7 @@ class model:
         >>> m.set_elimination(cl_l=10, cl_k=5)
         """
 
-        def elimination(c):
-            outflow = np.zeros(16)
-            outflow[5] += cl_k*c[5]
-            outflow[6] += cl_l*c[6]
-            return outflow
-
-        self.elimination = elimination
+        self.elimination = clearance_helper(cl_l, cl_k)
         self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
     
     def simulate(self, doses, times, route_of_administration='iv'):

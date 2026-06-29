@@ -32,7 +32,7 @@ def graph_venous_helper(time, concentrations, save_as, limit_of_detection=None):
     axs.plot(time, concentrations[15, :])
     if limit_of_detection is not None:
         axs.axhline(y=limit_of_detection, color='r', linestyle='--')
-    axs.set_title(identify_compartment(15))
+    axs.set_title('Venous Blood Concentration')
     axs.set_facecolor('#F2F2F2')
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
 
