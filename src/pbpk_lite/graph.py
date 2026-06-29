@@ -37,6 +37,7 @@ def graph_venous_helper(time, concentrations, save_as, limit_of_detection=None):
     axs.set_facecolor('#F2F2F2')
     axs.set_xlabel('Time (min)')
     axs.set_ylabel('Concentration (ng/mL)')
+    axs.set_yscale('log')
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
 
 def graph_compartments_helper(time, concentrations, compartments, save_as):
