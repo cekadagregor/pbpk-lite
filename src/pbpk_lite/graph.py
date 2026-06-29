@@ -23,8 +23,9 @@ def graph_whole_helper(time, concentrations, save_as):
         axs[i].plot(time, concentrations[comp, :])
         axs[i].set_title(identify_compartment(comp))
         axs[i].set_facecolor('#F2F2F2')
-        axs[i].set_xlabel('Time (min)')
-        axs[i].set_ylabel('Concentration (ng/mL)')
+        if i == (3, 0):
+            axs[i].set_xlabel('Time (min)')
+            axs[i].set_ylabel('Concentration (ng/mL)')
         comp += 1
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
 
