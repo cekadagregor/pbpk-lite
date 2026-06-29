@@ -23,6 +23,8 @@ def graph_whole_helper(time, concentrations, save_as):
         axs[i].plot(time, concentrations[comp, :])
         axs[i].set_title(identify_compartment(comp))
         axs[i].set_facecolor('#F2F2F2')
+        axs[i].set_xlabel('Time (min)')
+        axs[i].set_ylabel('Concentration (ng/mL)')
         comp += 1
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
 
@@ -34,6 +36,8 @@ def graph_venous_helper(time, concentrations, save_as, limit_of_detection=None):
         axs.axhline(y=limit_of_detection, color='r', linestyle='--')
     axs.set_title('Venous Blood Concentration')
     axs.set_facecolor('#F2F2F2')
+    axs.set_xlabel('Time (min)')
+    axs.set_ylabel('Concentration (ng/mL)')
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
 
 def graph_compartments_helper(time, concentrations, compartments, save_as):
@@ -43,5 +47,7 @@ def graph_compartments_helper(time, concentrations, compartments, save_as):
         axs.plot(time, concentrations[identify_compartment(compartment), :], label=compartment)
     axs.set_title('Selected Compartments')
     axs.set_facecolor('#F2F2F2')
+    axs.set_xlabel('Time (min)')
+    axs.set_ylabel('Concentration (ng/mL)')
     axs.legend()
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
