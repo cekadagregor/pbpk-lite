@@ -6,7 +6,6 @@ PBPK models with customizable substance properties, patient parameters,
 and elimination pathways.
 """
 
-import numpy as np
 from .distribution_params import V_function, Q_function, partition_model
 from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_helper
 from .solve import solver
