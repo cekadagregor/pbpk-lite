@@ -4,7 +4,7 @@
 
 It provides a simple programmatic interface for defining substance properties, patient physiology, elimination kinetics, and solving the resulting ODE system.
 
-The implementation is intended to be used with a consistent unit system based on mass units for doses and amounts, milliliters (mL) for volumes, and hours for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
+The implementation is intended to be used with a consistent unit system based on mass units for doses and amounts, milliliters (mL) for volumes, and minutes for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
 
 ## Features
 
@@ -44,7 +44,7 @@ times = [0, 480]
 t, c = m.simulate(doses, times, route_of_administration='iv')
 
 m.graph_whole('concentrations.png')
-m.graph_venous('venous.png', limit_of_detection=1.0)
+m.graph_venous('venous.png', limit_of_detection=0.15)
 m.graph_compartments(['liver', 'kidney'], 'selected.png')
 ```
 
@@ -78,8 +78,6 @@ Example with one dose:
 
 ```python
 # one dose at time 0, observation at 480 minutes
-dose = 0.053
-# example dose from tests: 0.053 mg/kg * 70 kg * 1e3 * 1e3
 doses = [dose]
 times = [0, 480]
 ```
@@ -88,8 +86,6 @@ Example with two doses:
 
 ```python
 # two identical doses spaced 480 minutes apart, with a final observation at 960 minutes
-dose = 0.053
-# example dose from tests: 0.053 mg/kg * 70 kg * 1e3 * 1e3
 doses = [dose, dose]
 times = [0, 480, 960]
 ```
