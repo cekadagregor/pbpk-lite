@@ -26,7 +26,7 @@ no_lung[7] = 0
 iv_input = 0
 ia_input = 0
 
-# @njit
+@njit
 def system_generator(V, Q, K, elimination):
     def inner(t, A):
         C = A/V

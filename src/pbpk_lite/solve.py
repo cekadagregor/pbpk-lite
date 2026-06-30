@@ -21,7 +21,7 @@ def solver(ode_system, doses, times, volumes, route_of_administration):
             index = 7
         a0[index] += dose
 
-        sol = solve_ivp(ode_system, time_interval, a0) #, method='LSODA', rtol=1e-4)
+        sol = solve_ivp(ode_system, time_interval, a0, method='LSODA', rtol=1e-4)
         t_partial = sol.t
         a_partial = sol.y
 
