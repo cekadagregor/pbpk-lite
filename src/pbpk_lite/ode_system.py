@@ -1,5 +1,4 @@
 import numpy as np
-from numba import njit
 
 # 0 adipose, 1 bone, 2 brain, 3 gut, 4 heart, 5 kidney, 6 liver, 7 lung, 8 muscle, 
 # 9 pancreas, 10 skin, 11 spleen, 12 stomach, 13 testes, 14 arterial blood, 15 venous blood
@@ -26,7 +25,9 @@ no_lung[7] = 0
 iv_input = 0
 ia_input = 0
 
-@njit
+def ode_math(V, Q, K, ):
+    pass
+
 def system_generator(V, Q, K, elimination):
     def inner(t, A):
         C = A/V
