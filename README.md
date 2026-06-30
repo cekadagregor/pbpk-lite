@@ -31,14 +31,17 @@ from pbpk_lite import model
 m = model()
 m.set_substance(log_p=6.97, fu=0.0022448)
 m.set_patient(bw=70)
-m.set_elimination(cl_l=10, cl_k=0)
+m.set_elimination(cl_l=748.6643482986731, cl_k=0)
 
-doses = [10]
-times = [0, 24]
+# example dose: 0.053 mg/kg for a 70 kg patient, converted to ng
+# dose = 0.053 * 70 * 1e3 * 1e3
+
+dose = 0.053
+
+doses = [dose]
+times = [0, 480]
 
 t, c = m.simulate(doses, times, route_of_administration='iv')
-print(t)
-print(c.shape)
 
 m.graph_whole('concentrations.png')
 m.graph_venous('venous.png', limit_of_detection=1.0)
@@ -58,7 +61,7 @@ Supported values are:
 Example:
 
 ```python
-m.simulate([10], [0, 24], route_of_administration='inh')
+m.simulate([dose], [0, 24*60], route_of_administration='inh')
 ```
 
 ## Dosing Schedule
@@ -74,17 +77,21 @@ Each dose at index `i` is administered at `times[i]`, and the final value in `ti
 Example with one dose:
 
 ```python
-# one dose at time 0, observation at 24 hours
-doses = [10]
-times = [0, 24]
+# one dose at time 0, observation at 480 minutes
+dose = 0.053
+# example dose from tests: 0.053 mg/kg * 70 kg * 1e3 * 1e3
+doses = [dose]
+times = [0, 480]
 ```
 
 Example with two doses:
 
 ```python
-# doses at 0 and 12 hours, observation at 24 hours
-doses = [10, 10]
-times = [0, 12, 24]
+# two identical doses spaced 480 minutes apart, with a final observation at 960 minutes
+dose = 0.053
+# example dose from tests: 0.053 mg/kg * 70 kg * 1e3 * 1e3
+doses = [dose, dose]
+times = [0, 480, 960]
 ```
 
 ## API Summary
