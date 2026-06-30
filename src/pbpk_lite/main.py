@@ -221,7 +221,7 @@ class model:
         """
         graph_whole_helper(self.t, self.c, name)
 
-    def graph_venous(self, name, limit_of_detection=None):
+    def graph_venous(self, name, limit_of_detection=None, log=True):
         """
         Graph the concentrations in the venous blood compartment and save the figure.
 
@@ -232,7 +232,7 @@ class model:
         limit_of_detection : float, optional
             Limit of detection to be indicated on the graph.
         """
-        graph_venous_helper(self.t, self.c, name, limit_of_detection)
+        graph_venous_helper(self.t, self.c, name, limit_of_detection, log)
 
     def graph_compartments(self, compartments, name):
         """
