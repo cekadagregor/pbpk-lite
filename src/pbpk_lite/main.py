@@ -21,7 +21,7 @@ class model:
     It integrates partition coefficients, blood flows, tissue volumes, and
     elimination kinetics to solve the system of ordinary differential equations.
     The implementation assumes a consistent unit system based on mass units
-    for doses and amounts, mL for volumes, and hours for time.
+    for doses and amounts, mL for volumes, and minutes for time.
     
     Attributes
     ----------
@@ -45,8 +45,8 @@ class model:
     >>> m = model()
     >>> m.set_substance(log_p=6.97, fu=0.0022448)
     >>> m.set_patient(bw=70)
-    >>> doses = (10,)
-    >>> times = (0, 24)
+    >>> doses = [0.053]
+    >>> times = [0, 24*60]
     >>> t, c = m.simulate(doses, times)
     """
     def __init__(self):
@@ -61,8 +61,9 @@ class model:
         -----
         The default parameters are placeholders and should be set using
         set_substance() and set_patient() methods before solving the model.
-        Elimination is initialized with zero clearance values which can be
-        updated using set_elimination().
+        Elimination is initialized with a placeholder clearance value for 
+        cl_l and a zero value for cl_k which can be updated using 
+        set_elimination().
         """
         # placeholder parameters
         logp = 6.97
@@ -155,7 +156,7 @@ class model:
         
         Notes
         -----
-        The elimination function modifies compartments 5 (liver) and 6 (kidney)
+        The elimination function modifies compartments 5 (kidney) and 6 (liver)
         with linear kinetics: outflow = clearance * concentration.
         After setting elimination parameters, the ODE system is regenerated.
         
@@ -175,7 +176,7 @@ class model:
         The `times` array must contain one more time point than the `doses`
         sequence. Each dose at index `i` is administered at `times[i]`, and
         the final entry in `times` is the last observation time. The time
-        values are interpreted in hours.
+        values are interpreted in minutes and must be strictly increasing.
         
         Parameters
         ----------
@@ -183,7 +184,8 @@ class model:
             A list of all doses.
         times : array-like
             A list of times at which doses are given, plus a final endpoint.
-            This array must have length `len(doses) + 1`.
+            This array must have length `len(doses) + 1` and contain
+            strictly increasing values.
         route_of_administration : {'iv', 'ia', 'inh'}, optional
             Route used to administer each dose. 'iv' injects the dose into
             the venous blood compartment, 'ia' into the arterial blood
@@ -202,14 +204,14 @@ class model:
         >>> m = model()
         >>> m.set_substance(log_p=6.97, fu=0.0022448)
         >>> m.set_patient(bw=70)
-        >>> t, c = m.simulate([10], [0, 24], route_of_administration='iv')
-        >>> t, c = m.simulate([10], [0, 24], route_of_administration='inh')
+        >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
+        >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
 
         self.t, self.c = solver(self.odes, doses, times, self.volumes, route_of_administration)
         return self.t, self.c
         
-    def graph_whole(self, name):
+    def graph_whole(self, name, time_unit='min'):
         """
         Graph the concentrations in each tissue and save the figure.
         
@@ -217,10 +219,12 @@ class model:
         ----------
         name : str
             File path to save the figure.
+        time_unit : {'min', 'hours', 'days'}, optional
+            Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_whole_helper(self.t, self.c, name)
+        graph_whole_helper(self.t, self.c, name, time_unit=time_unit)
 
-    def graph_venous(self, name, limit_of_detection=None, log=True):
+    def graph_venous(self, name, limit_of_detection=None, log=True, time_unit='min'):
         """
         Graph the concentrations in the venous blood compartment and save the figure.
 
@@ -230,10 +234,14 @@ class model:
             File path to save the figure.
         limit_of_detection : float, optional
             Limit of detection to be indicated on the graph.
+        log : bool, optional
+            Whether to use a logarithmic y-axis. The default is True.
+        time_unit : {'min', 'hours', 'days'}, optional
+            Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_venous_helper(self.t, self.c, name, limit_of_detection, log)
+        graph_venous_helper(self.t, self.c, name, limit_of_detection, log, time_unit=time_unit)
 
-    def graph_compartments(self, compartments, name):
+    def graph_compartments(self, compartments, name, time_unit='min'):
         """
         Graph the concentrations in selected compartments and save the figure.
 
@@ -243,5 +251,7 @@ class model:
             List of compartment names or indices to be graphed.
         name : str
             File path to save the figure.
+        time_unit : {'min', 'hours', 'days'}, optional
+            Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_compartments_helper(self.t, self.c, compartments, name)
+        graph_compartments_helper(self.t, self.c, compartments, name, time_unit=time_unit)

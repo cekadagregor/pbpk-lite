@@ -4,7 +4,7 @@
 
 It provides a simple programmatic interface for defining substance properties, patient physiology, elimination kinetics, and solving the resulting ODE system.
 
-The implementation is intended to be used with a consistent unit system based on mass units for doses and amounts, milliliters (mL) for volumes, and minutes for time. When using the model, doses, volumes, flows, and clearances should all be expressed in compatible units within that framework.
+The implementation is intended to be used with a consistent unit system based on mass units for doses and amounts, milliliters (mL) for volumes, and minutes for time. When using the model, doses and clearances should be expressed in compatible units within that framework. The simulation itself uses minutes internally, while the plotting helpers can display the x-axis in minutes, hours, or days via the optional `time_unit` argument.
 
 ## Features
 
@@ -33,19 +33,18 @@ m.set_substance(log_p=6.97, fu=0.0022448)
 m.set_patient(bw=70)
 m.set_elimination(cl_l=748.6643482986731, cl_k=0)
 
-# example dose: 0.053 mg/kg for a 70 kg patient, converted to ng
-# dose = 0.053 * 70 * 1e3 * 1e3
-
-dose = 0.053
+dose = 25e6
 
 doses = [dose]
-times = [0, 480]
+times = [0, 60*24]
 
 t, c = m.simulate(doses, times, route_of_administration='iv')
 
 m.graph_whole('concentrations.png')
-m.graph_venous('venous.png', limit_of_detection=0.15)
-m.graph_compartments(['liver', 'kidney'], 'selected.png')
+m.graph_venous('venous.png', limit_of_detection=0.15, time_unit='hours')
+m.graph_compartments(['liver', 'kidney'], 'selected.png', time_unit='days')
+
+# The underlying simulation still uses minutes internally; only the displayed axis changes.
 ```
 
 ## Route of Administration
@@ -71,23 +70,23 @@ The `simulate()` method expects:
 - `doses`: array-like of administered doses
 - `times`: array-like of dosing times plus a final endpoint
 
-Important: `times` must have exactly one more element than `doses`.
-Each dose at index `i` is administered at `times[i]`, and the final value in `times` is the last observation or endpoint. Times are interpreted in hours, so dosing schedules and simulation endpoints should be provided in hours.
+Important: `times` must have exactly one more element than `doses` and must be strictly increasing.
+Each dose at index `i` is administered at `times[i]`, and the final value in `times` is the last observation or endpoint. Times are interpreted in minutes, so dosing schedules and simulation endpoints should be provided in minutes.
 
 Example with one dose:
 
 ```python
-# one dose at time 0, observation at 480 minutes
+# one dose at time 0, observation at 24 hours
 doses = [dose]
-times = [0, 480]
+times = [0, 60*24]
 ```
 
 Example with two doses:
 
 ```python
-# two identical doses spaced 480 minutes apart, with a final observation at 960 minutes
+# two identical doses spaced one hour apart, with a final observation at 24 hours
 doses = [dose, dose]
-times = [0, 480, 960]
+times = [0, 60, 60*24]
 ```
 
 ## API Summary
@@ -115,17 +114,17 @@ Simulate the PBPK model and return time points `t` and compartment concentration
 
 - `route_of_administration`: administration route used for each dose (`'iv'`, `'ia'`, or `'inh'`)
 
-#### `graph_whole(name)`
+#### `graph_whole(name, time_unit='min')`
 
-Save a multi-panel plot of concentrations across all compartments.
+Save a multi-panel plot of concentrations across all compartments. The optional `time_unit` argument can be `'min'`, `'hours'`, or `'days'` to change the x-axis label and values.
 
-#### `graph_venous(name, limit_of_detection=None)`
+#### `graph_venous(name, limit_of_detection=None, log=True, time_unit='min')`
 
-Save a plot of venous blood concentrations, optionally marking a detection limit.
+Save a plot of venous blood concentrations, optionally marking a detection limit. The optional `log` argument controls whether the y-axis uses a logarithmic scale, and `time_unit` can be `'min'`, `'hours'`, or `'days'` to change the x-axis label and values.
 
-#### `graph_compartments(compartments, name)`
+#### `graph_compartments(compartments, name, time_unit='min')`
 
-Save a plot of selected compartments by name or index.
+Save a plot of selected compartments by name or index. The optional `time_unit` argument can be `'min'`, `'hours'`, or `'days'` to change the x-axis label and values.
 
 ## License
 
