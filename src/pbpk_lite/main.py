@@ -10,7 +10,7 @@ from .distribution_params import V_function, Q_function, partition_model
 from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_helper
 from .solve import solver
 from .ode_system import system_generator
-from .elimination import clearance_helper
+from .elimination import clearance_helper, michaelis_menten_helper
 
 class model:
     """
@@ -166,9 +166,41 @@ class model:
         >>> m.set_elimination(cl_l=10, cl_k=5)
         """
 
-        self.elimination = clearance_helper(cl_l, cl_k)
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
+        elimination = clearance_helper(cl_l, cl_k)
+        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, elimination)
     
+    def set_michaelis_menten_elimination(self, vmax, km):
+        """
+        Set the elimination parameters using Michaelis-Menten kinetics.
+
+        Updates the elimination function to account for nonlinear clearance
+        from the liver based on Michaelis-Menten kinetics. The elimination
+        function calculates the outflow of substance from the liver compartment.
+
+        Parameters
+        ----------
+        vmax : float
+            Maximum rate of elimination (Vmax) from the liver.
+        km : float
+            Michaelis constant (Km) representing the concentration at which
+            the elimination rate is half of Vmax.
+        
+        Notes
+        -----
+        The elimination function modifies compartment 6 (liver) with nonlinear
+        kinetics: outflow = Vmax * concentration / (Km + concentration).
+        After setting Michaelis-Menten elimination parameters, the ODE system
+        is regenerated.
+        
+        Examples
+        --------
+        >>> m = model()
+        >>> m.set_michaelis_menten_elimination(vmax=10, km=5)
+        """
+        
+        elimination = michaelis_menten_helper(vmax, km)
+        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, elimination)
+
     def simulate(self, doses, times, route_of_administration='iv'):
         """
         Set the administration regime and simulate the system of ODEs.

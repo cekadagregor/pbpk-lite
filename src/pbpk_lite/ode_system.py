@@ -18,6 +18,7 @@ venous_input[11] = 0
 venous_input[9] = 0
 venous_input[12] = 0
 venous_input[3] = 0
+venous_input[6] = 0
 
 no_lung = np.ones(14)
 no_lung[7] = 0
@@ -33,7 +34,7 @@ def system_generator(V, Q, K, elimination):
         dA[:14] += no_lung*Q*(C[14] - C[:14]/K[:14])
         dA[6] += sum(liver_input*Q*C[:14]/K[:14])
         dA -= elimination(C)
-        dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14]) + iv_input
+        dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14]) + sum(Q*liver_input)*C[6]/K[6]+ iv_input
         dA[14] = Q[7]*C[7]/K[7] - (sum(Q) - Q[7])*C[14] + ia_input
         return dA
     return inner

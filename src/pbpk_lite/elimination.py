@@ -7,3 +7,10 @@ def clearance_helper(cl_l, cl_k):
         outflow[6] += cl_l * c[6]
         return outflow
     return inner
+
+def michaelis_menten_helper(vmax, km):
+    def inner(c):
+        outflow = np.zeros(16)
+        outflow[6] += vmax * c[6] / (km + c[7])
+        return outflow
+    return inner

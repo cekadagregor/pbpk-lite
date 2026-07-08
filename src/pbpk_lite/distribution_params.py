@@ -35,7 +35,11 @@ f_w_p = 0.939
 def partition_model(logp, fu):
     fut = 1/(1 + 0.5*((1-fu)/fu))
     p_ow = 10**logp
+    # from https://doi.org/10.1002/jps.10005
+    log_d_ow = 1.115*logp - 1.35
+    d_ow = 10**log_d_ow
 
-    k_p = fu*(p_ow*(f_nl + 0.3*f_pl) + f_w + 0.7*f_pl)/(p_ow*(f_nl_p + 0.3*f_pl_p) + f_w_p + 0.7*f_pl_p)
-    k_p[1:] /= fut
+
+    k_p = (p_ow*(f_nl + 0.3*f_pl) + (f_w + 0.7*f_pl)/fut)/(p_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
+    k_p[0] = (d_ow*(f_nl[0] + 0.3*f_pl[0]) + f_w[0] + 0.7*f_pl[0])/(d_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
     return k_p
