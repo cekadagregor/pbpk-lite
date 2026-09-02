@@ -1,7 +1,7 @@
 from scipy.integrate import solve_ivp
 import numpy as np
 
-def solver(ode_system, doses, times, volumes, route_of_administration):
+def solver(ode_system, doses, times, volumes, route_of_administration, n):
     if len(times) != len(doses) + 1:
         raise ValueError("times must contain exactly len(doses) + 1 entries")
 
@@ -12,13 +12,13 @@ def solver(ode_system, doses, times, volumes, route_of_administration):
         raise ValueError("route_of_administration must be one of 'iv', 'ia', or 'inh'")
 
     t_full = np.array([])
-    a_full = np.array([[] for i in range(16)])
+    a_full = np.array([[] for i in range(16*n)])
 
     for i in range(len(doses)):
         dose = doses[i]
         time_interval = times[i:i+2]
         if i == 0:
-            a0 = np.zeros(16)
+            a0 = np.zeros(16*n)
         else:
             a0 = a_full[:, -1]
 

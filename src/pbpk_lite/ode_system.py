@@ -25,15 +25,22 @@ no_lung[7] = 0
 iv_input = 0
 ia_input = 0
 
-def system_generator(V, Q, K, elimination):
+def system_generator(V, Q, Ks, cls, gc, n):
     def inner(t, A):
-        C = A/V
-        dA = np.zeros(16)
-        dA[7] = Q[7]*(C[15] - C[7]/K[7])
-        dA[:14] += no_lung*Q*(C[14] - C[:14]/K[:14])
-        dA[6] += sum(liver_input*Q*C[:14]/K[:14])
-        dA -= elimination(C)
-        dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14]) + iv_input
-        dA[14] = Q[7]*C[7]/K[7] - (sum(Q) - Q[7])*C[14] + ia_input
-        return dA
+        dAs = np.zeros(16*n)
+        Cs = A/V
+        for i in range(n):
+            C = Cs[16*i:16*(i+1)]
+            dA = dAs[16*i:16*(i+1)]
+            K = Ks[i]
+            dA[7] = Q[7]*(C[15] - C[7]/K[7])
+            dA[:14] += no_lung*Q*(C[14] - C[:14]/K[:14])
+            dA[6] += sum(liver_input*Q*C[:14]/K[:14])
+            dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14]) + iv_input
+            dA[14] = Q[7]*C[7]/K[7] - (sum(Q) - Q[7])*C[14] + ia_input
+            metabolism = cls[i]*C[6]
+            dA[6] -= metabolism
+            if i != n-1:
+                dAs[6 + 16 *(i+1)] += metabolism * gc[i]
+        return dAs
     return inner

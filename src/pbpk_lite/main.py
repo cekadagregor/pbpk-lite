@@ -113,9 +113,9 @@ class model:
         """
         
         self.blood_flows = Q_function(bw)
-        self.volumes = V_function(bw)
+        self.volumes = V_function(bw, self.n_of_substances)
             
-    def set_elimination(self, cl_l=0, cl_k=0):
+    def set_elimination(self, cl_ls):
         """
         Set the elimination parameters.
 
@@ -144,8 +144,8 @@ class model:
         >>> m.set_elimination(cl_l=10, cl_k=5)
         """
 
-        elimination = clearance_helper(cl_l, cl_k)
-    
+        self.cl_ls = cl_ls
+
     def simulate(self, doses, times, route_of_administration='iv'):
         """
         Set the administration regime and simulate the system of ODEs.
@@ -184,8 +184,8 @@ class model:
         >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
         >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
-        odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, elimination)
-        self.t, self.c = solver(odes, doses, times, self.volumes, route_of_administration)
+        odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.cl_ls, self.gravimetric_coeficients, self.n_of_substances)
+        self.t, self.c = solver(odes, doses, times, self.volumes, route_of_administration, self.n_of_substances)
         return self.t, self.c
         
     def graph_whole(self, name, time_unit='min'):

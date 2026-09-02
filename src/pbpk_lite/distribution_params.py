@@ -1,7 +1,10 @@
 import numpy as np
 
 V_a = np.array((143, 124, 20.7, 23.6, 3.8, 4.4, 24.1, 16.7, 429, 1.2, 111, 2.7, 2.2, 0.51, 25.7, 51.4)) # mL/kg
-def V_function(bw): return V_a * bw
+def V_function(bw, n): 
+    V = V_a * bw
+    Vs = [V for i in range(n)]
+    return np.concatenate(Vs)
 
 Q_a = np.array((3.7, 3.6, 10, 13, 2.14, 15.7, 21, 71, 10.7, 1.9, 4.3, 1.1, 0.56, 0.04)) # mL/min/kg
 def Q_function(bw): return Q_a * (bw**0.75)
