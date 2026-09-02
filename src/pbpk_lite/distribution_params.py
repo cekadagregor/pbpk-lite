@@ -46,3 +46,12 @@ def partition_model(logp, fu):
     k_p = (p_ow*(f_nl + 0.3*f_pl) + (f_w + 0.7*f_pl)/fut)/(p_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
     k_p[0] = (d_ow*(f_nl[0] + 0.3*f_pl[0]) + f_w[0] + 0.7*f_pl[0])/(d_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
     return k_p
+
+def partitions(logps, fus):
+    n = len(logps)
+    partition_coefficients = [partition_model(logps[i], fus[i]) for i in range(n)]
+    return partition_coefficients
+
+def gravimetric_model(mms):
+    gravimetric_coefficients = [mms[i+1]/mms[i] for i in range(len(mms)-1)]
+    return gravimetric_coefficients
