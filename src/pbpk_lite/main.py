@@ -52,32 +52,9 @@ class model:
     def __init__(self):
         """
         Initialize the PBPK model with placeholder parameters.
-        
-        Sets up default substance properties (logp=6.97, fu=0.0022448),
-        patient parameters (body weight=70 kg), and a default elimination
-        pathway with hepatic and renal clearance.
-        
-        Notes
-        -----
-        The default parameters are placeholders and should be set using
-        set_substance() and set_patient() methods before solving the model.
-        Elimination is initialized with a placeholder clearance value for 
-        cl_l and a zero value for cl_k which can be updated using 
-        set_elimination().
         """
-        # placeholder parameters
-        logp = 6.97
-        fu = 0.0022448
-        bw = 70
-        cl_l = 748.6643482986731
-        cl_k = 0
-        self.partition_coefficients = partition_model(logp, fu)
-        self.blood_flows = Q_function(bw)
-        self.volumes = V_function(bw)
-        self.elimination = clearance_helper(cl_l, cl_k)
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
 
-    def set_substance(self, log_p, fu):
+    def set_substance_and_metabolytes(self, log_ps, fus, mms):
         """
         Set the substance properties that are being investigated.
 
@@ -104,9 +81,11 @@ class model:
         >>> m = model()
         >>> m.set_substance(log_p=6.97, fu=0.0022448)
         """
-    
-        self.partition_coefficients = partition_model(log_p, fu)
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
+
+        n = len(mms)
+        self.n_of_substances = n
+        self.partition_coefficients = [partition_model(log_ps[i], fus[i]) for i in range(n)]
+        self.gravimetric_coeficients = [mms[i+1]/mms[i] for i in range(n-1)]
 
     def set_patient(self, bw):
         """
@@ -135,8 +114,7 @@ class model:
         
         self.blood_flows = Q_function(bw)
         self.volumes = V_function(bw)
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.elimination)
-    
+            
     def set_elimination(self, cl_l=0, cl_k=0):
         """
         Set the elimination parameters.
@@ -167,7 +145,6 @@ class model:
         """
 
         elimination = clearance_helper(cl_l, cl_k)
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, elimination)
     
     def simulate(self, doses, times, route_of_administration='iv'):
         """
@@ -207,8 +184,8 @@ class model:
         >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
         >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
-
-        self.t, self.c = solver(self.odes, doses, times, self.volumes, route_of_administration)
+        odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, elimination)
+        self.t, self.c = solver(odes, doses, times, self.volumes, route_of_administration)
         return self.t, self.c
         
     def graph_whole(self, name, time_unit='min'):
