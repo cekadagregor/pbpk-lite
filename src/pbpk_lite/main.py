@@ -115,7 +115,7 @@ class model:
         self.blood_flows = Q_function(bw)
         self.volumes = V_function(bw, self.n_of_substances)
             
-    def set_elimination(self, cl_ls):
+    def set_elimination(self, cl_ls, cl_ks):
         """
         Set the elimination parameters.
 
@@ -145,6 +145,7 @@ class model:
         """
 
         self.cl_ls = cl_ls
+        self.eliminations = [clearance_helper(cl_ls[i], cl_ks[i]) for i in range(self.n_of_substances)]
 
     def simulate(self, doses, times, route_of_administration='iv'):
         """
@@ -184,7 +185,7 @@ class model:
         >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
         >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
-        odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.cl_ls, self.gravimetric_coeficients, self.n_of_substances)
+        odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coeficients, self.n_of_substances)
         self.t, self.c = solver(odes, doses, times, self.volumes, route_of_administration, self.n_of_substances)
         return self.t, self.c
         
