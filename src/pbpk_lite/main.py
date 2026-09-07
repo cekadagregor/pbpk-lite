@@ -11,6 +11,7 @@ from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_h
 from .solve import solver
 from .ode_system import system_generator
 from .elimination import clearance_helper
+from .administration import inhalation_helper, placeholder_helper
 
 class model:
     """
@@ -90,7 +91,9 @@ class model:
         gravimetric_coefficients = gravimetric_model(mms)
         self.gravimetric_coefficients = gravimetric_coefficients
         self.n_of_substances = 3
-        self.odes = system_generator(volumes, blood_flows, partition_coefficients, eliminations, gravimetric_coefficients, 3)
+        administration = placeholder_helper
+        self.administration = administration
+        self.odes = system_generator(volumes, blood_flows, partition_coefficients, eliminations, gravimetric_coefficients, 3, administration)
 
 
     def set_substance_and_metabolites(self, log_ps, fus, mms):
@@ -133,7 +136,7 @@ class model:
         self.partition_coefficients = partition_coefficients
         gravimetric_coefficients = gravimetric_model(mms)
         self.gravimetric_coefficients = gravimetric_coefficients
-        self.odes = system_generator(self.volumes, self.blood_flows, partition_coefficients, self.eliminations, gravimetric_coefficients, self.n_of_substances)
+        self.odes = system_generator(self.volumes, self.blood_flows, partition_coefficients, self.eliminations, gravimetric_coefficients, self.n_of_substances, self.administration)
 
 
     def set_patient(self, bw):
@@ -167,8 +170,16 @@ class model:
         self.bw = bw
         self.blood_flows = blood_flows
         self.volumes = volumes
-        self.odes = system_generator(volumes, blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coefficients, self.n_of_substances)
+        self.odes = system_generator(volumes, blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coefficients, self.n_of_substances, self.administration)
 
+    def set_administration(self, roa):
+        self.route_of_administration = roa
+        if roa == 'inh':
+            administration = inhalation_helper
+        else:
+            administration = placeholder_helper
+        self.administration = administration
+        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coefficients, self.n_of_substances, administration)
             
     def set_elimination(self, cl_ls, cl_ks):
         """
@@ -201,10 +212,10 @@ class model:
 
         eliminations = [clearance_helper(cl_ls[i], cl_ks[i]) for i in range(self.n_of_substances)]
         self.eliminations = eliminations
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, eliminations, self.gravimetric_coefficients, self.n_of_substances)
+        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, eliminations, self.gravimetric_coefficients, self.n_of_substances, self.administration)
 
 
-    def simulate(self, doses, times, route_of_administration='iv'):
+    def simulate(self, doses, times):
         """
         Set the administration regime and simulate the system of ODEs.
         
@@ -247,7 +258,7 @@ class model:
         >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
         >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
-        self.t, self.c = solver(self.odes, doses, times, self.volumes, route_of_administration, self.n_of_substances)
+        self.t, self.c = solver(self.odes, doses, times, self.volumes, self.route_of_administration, self.n_of_substances)
         return self.t, self.c
         
     def graph_whole(self, name, time_unit='min'):

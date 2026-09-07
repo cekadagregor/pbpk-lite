@@ -22,15 +22,16 @@ def solver(ode_system, doses, times, volumes, route_of_administration, n):
         else:
             a0 = a_full[:, -1]
 
-        if route_of_administration == 'iv':
-            index = 15
-        elif route_of_administration == 'ia':
-            index = 14
-        elif route_of_administration == 'inh':
-            index = 7
-        a0[index] += dose
-
-        sol = solve_ivp(ode_system, time_interval, a0, method='Radau')
+        if route_of_administration == 'inh':
+            t0 = time_interval[0]
+            sol = solve_ivp(ode_system, time_interval, a0, method='Radau', args=(dose, t0, 10))
+        else:
+            if route_of_administration == 'iv':
+                index = 15
+            elif route_of_administration == 'ia':
+                index = 14
+            a0[index] += dose
+            sol = solve_ivp(ode_system, time_interval, a0, method='Radau')
         t_partial = sol.t
         a_partial = sol.y
 
