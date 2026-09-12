@@ -6,12 +6,13 @@ PBPK models with customizable substance and metabolite properties,
 patient parameters, and elimination pathways.
 """
 
-from .distribution_params import V_function, Q_function, partitions, gravimetric_model
+from .distribution_params import V_function, distribution_helper
 from .graph import graph_whole_helper, graph_venous_helper, graph_compartments_helper
 from .solve import solver
 from .ode_system import system_generator
-from .elimination import clearance_helper
-from .administration import inhalation_helper, placeholder_helper
+from .administration import administration_helper
+from .metabolism_and_excretion import metabolism_helper
+import numpy as np
 
 class model:
     """
@@ -74,29 +75,18 @@ class model:
         """
         # placeholder parameters
         logps = (6.97, 5.33, 5.24)
+        self.n = len(logps)
         fus = (0.0022448, 0.01209, 0.101)  
         mms = (314.469, 330.468, 344.451)
         bw = 70
+        self.body_weight = bw
         cl_ls = (247, 998, 8.94)
         cl_ks = (0, 0, 1.48)
-        eliminations = [clearance_helper(cl_ls[i], cl_ks[i]) for i in range(len(mms))]
-        partition_coefficients = partitions(logps, fus)
-        self.partition_coefficients = partition_coefficients
-        self.bw = bw
-        blood_flows = Q_function(bw)
-        volumes = V_function(bw, 3)
-        self.blood_flows = blood_flows
+        volumes = V_function(bw)
         self.volumes = volumes
-        self.eliminations = eliminations
-        gravimetric_coefficients = gravimetric_model(mms)
-        self.gravimetric_coefficients = gravimetric_coefficients
-        self.n_of_substances = 3
-        administration = placeholder_helper
-        self.administration = administration
-        self.odes = system_generator(volumes, blood_flows, partition_coefficients, eliminations, gravimetric_coefficients, 3, administration)
 
 
-    def set_substance_and_metabolites(self, log_ps, fus, mms):
+    def set_substance_and_metabolites(self, logps, fus):
         """
         Set the substance properties that are being investigated.
 
@@ -106,7 +96,7 @@ class model:
 
         Parameters
         ----------
-        log_ps : sequence of float
+        logps : sequence of float
             Log octanol-water partition coefficients for the substance and
             metabolites.
         fus : sequence of float
@@ -129,15 +119,9 @@ class model:
         ...     (314.469, 330.468, 344.451))
         """
 
-        n = len(mms)
-        self.n_of_substances = n
-        self.volumes = V_function(self.bw, n)
-        partition_coefficients = partitions(log_ps, fus)
-        self.partition_coefficients = partition_coefficients
-        gravimetric_coefficients = gravimetric_model(mms)
-        self.gravimetric_coefficients = gravimetric_coefficients
-        self.odes = system_generator(self.volumes, self.blood_flows, partition_coefficients, self.eliminations, gravimetric_coefficients, self.n_of_substances, self.administration)
-
+        self.n = len(logps)
+        self.substance_parameters = logps, fus
+        self.distribution = distribution_helper(self.body_weight, logps, fus)
 
     def set_patient(self, bw):
         """
@@ -165,23 +149,15 @@ class model:
         >>> m.set_patient(bw=70)  # 70 kg patient
         """
 
-        blood_flows = Q_function(bw)
-        volumes = V_function(bw, self.n_of_substances)
-        self.bw = bw
-        self.blood_flows = blood_flows
+        self.body_weight = bw
+        volumes = V_function(bw)
         self.volumes = volumes
-        self.odes = system_generator(volumes, blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coefficients, self.n_of_substances, self.administration)
+        self.distribution = distribution_helper(bw, *self.substance_parameters)
 
-    def set_administration(self, roa):
-        self.route_of_administration = roa
-        if roa == 'inh':
-            administration = inhalation_helper
-        else:
-            administration = placeholder_helper
-        self.administration = administration
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, self.eliminations, self.gravimetric_coefficients, self.n_of_substances, administration)
-            
-    def set_elimination(self, cl_ls, cl_ks):
+    def set_administration(self, regimen):
+        self.administration, self.times = administration_helper(regimen)
+                    
+    def set_metabolism_and_excretion(self, molar_masses, connections, clearances):
         """
         Set the elimination parameters.
 
@@ -210,12 +186,9 @@ class model:
         >>> m.set_elimination((10, 10, 10), (5, 5, 5))
         """
 
-        eliminations = [clearance_helper(cl_ls[i], cl_ks[i]) for i in range(self.n_of_substances)]
-        self.eliminations = eliminations
-        self.odes = system_generator(self.volumes, self.blood_flows, self.partition_coefficients, eliminations, self.gravimetric_coefficients, self.n_of_substances, self.administration)
+        self.metabolism_and_excretion = metabolism_helper(molar_masses, connections, clearances)
 
-
-    def simulate(self, doses, times):
+    def simulate(self, additional_time=60):
         """
         Set the administration regime and simulate the system of ODEs.
         
@@ -258,7 +231,11 @@ class model:
         >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
         >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
         """
-        self.t, self.c = solver(self.odes, doses, times, self.volumes, self.route_of_administration, self.n_of_substances)
+
+        odes = system_generator(self.volumes, self.n, self.administration, self.distribution, self.metabolism_and_excretion)
+        times = np.append(self.times, additional_time + self.times[-1])
+
+        self.t, self.c = solver(odes, times, self.volumes, self.n)
         return self.t, self.c
         
     def graph_whole(self, name, time_unit='min'):

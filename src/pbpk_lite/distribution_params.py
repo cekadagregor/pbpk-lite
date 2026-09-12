@@ -1,10 +1,7 @@
 import numpy as np
 
 V_a = np.array((143, 124, 20.7, 23.6, 3.8, 4.4, 24.1, 16.7, 429, 1.2, 111, 2.7, 2.2, 0.51, 25.7, 51.4)) # mL/kg
-def V_function(bw, n): 
-    V = V_a * bw
-    Vs = [V for i in range(n)]
-    return np.concatenate(Vs)
+def V_function(bw): return V_a * bw
 
 Q_a = np.array((3.7, 3.6, 10, 13, 2.14, 15.7, 21, 71, 10.7, 1.9, 4.3, 1.1, 0.56, 0.04)) # mL/min/kg
 def Q_function(bw): return Q_a * (bw**0.75)
@@ -42,7 +39,6 @@ def partition_model(logp, fu):
     log_d_ow = 1.115*logp - 1.35
     d_ow = 10**log_d_ow
 
-
     k_p = (p_ow*(f_nl + 0.3*f_pl) + (f_w + 0.7*f_pl)/fut)/(p_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
     k_p[0] = (d_ow*(f_nl[0] + 0.3*f_pl[0]) + f_w[0] + 0.7*f_pl[0])/(d_ow*(f_nl_p + 0.3*f_pl_p) + (f_w_p + 0.7*f_pl_p)/fu)
     return k_p
@@ -52,6 +48,45 @@ def partitions(logps, fus):
     partition_coefficients = [partition_model(logps[i], fus[i]) for i in range(n)]
     return partition_coefficients
 
-def gravimetric_model(mms):
-    gravimetric_coefficients = [mms[i+1]/mms[i] for i in range(len(mms)-1)]
-    return gravimetric_coefficients
+# 0 adipose, 1 bone, 2 brain, 3 gut, 4 heart, 5 kidney, 6 liver, 7 lung, 8 muscle, 
+# 9 pancreas, 10 skin, 11 spleen, 12 stomach, 13 testes, 14 arterial blood, 15 venous blood
+
+arterial_input = np.ones(14)
+arterial_input[7] = 0
+
+liver_input = np.zeros(14)
+liver_input[11] = 1
+liver_input[9] = 1
+liver_input[12] = 1
+liver_input[3] = 1
+
+venous_input = np.ones(14)
+venous_input[7] = 0
+venous_input[11] = 0
+venous_input[9] = 0
+venous_input[12] = 0
+venous_input[3] = 0
+
+no_lung = np.ones(14)
+no_lung[7] = 0
+
+def distribution_instance(C, Q, K):
+    dA = np.zeros(16)
+    dA[7] = Q[7]*(C[15] - C[7]/K[7])
+    dA[:14] += no_lung*Q*(C[14] - C[:14]/K[:14])
+    dA[6] += sum(liver_input*Q*C[:14]/K[:14])
+    dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14])
+    dA[14] = Q[7]*C[7]/K[7] - (sum(Q) - Q[7])*C[14]
+    return dA
+
+def distribution_helper(body_weight, logps, fus):
+    Q = Q_function(body_weight)
+    Ks = partitions(logps, fus)
+    n = len(logps)
+    def inner(C):
+        dA = np.zeros((n, 16))
+        for i in range(n):
+            K = Ks[i]
+            dA[i, :] = distribution_instance(C[i, :], Q, K)
+        return dA
+    return inner

@@ -1,49 +1,12 @@
 import numpy as np
 
-# 0 adipose, 1 bone, 2 brain, 3 gut, 4 heart, 5 kidney, 6 liver, 7 lung, 8 muscle, 
-# 9 pancreas, 10 skin, 11 spleen, 12 stomach, 13 testes, 14 arterial blood, 15 venous blood
+def system_generator(V, n, administration, distribution, metabolism_and_excretion):
+    def inner(t, A):
+        dA = np.zeros((n, 16))
+        C = A.reshape((n, 16))/V
 
-arterial_input = np.ones(14)
-arterial_input[7] = 0
-
-liver_input = np.zeros(14)
-liver_input[11] = 1
-liver_input[9] = 1
-liver_input[12] = 1
-liver_input[3] = 1
-
-venous_input = np.ones(14)
-venous_input[7] = 0
-venous_input[11] = 0
-venous_input[9] = 0
-venous_input[12] = 0
-venous_input[3] = 0
-
-no_lung = np.ones(14)
-no_lung[7] = 0
-
-iv_input = 0
-ia_input = 0
-
-def system_generator(V, Q, Ks, eliminations, gc, n, administration_helper):
-    def inner(t, A, *admin_args):
-        dAs = np.zeros(16*n)
-        Cs = A/V
-        for i in range(n):
-            C = Cs[16*i:16*(i+1)]
-            dA = dAs[16*i:16*(i+1)]
-            K = Ks[i]
-            dA[7] = Q[7]*(C[15] - C[7]/K[7])
-            dA[:14] += no_lung*Q*(C[14] - C[:14]/K[:14])
-            dA[6] += sum(liver_input*Q*C[:14]/K[:14])
-            dA[15] = - Q[7]*C[15] + sum(venous_input*Q*C[:14]/K[:14]) + iv_input
-            dA[14] = Q[7]*C[7]/K[7] - (sum(Q) - Q[7])*C[14] + ia_input
-            if i == 0:
-                administration = administration_helper(*admin_args)
-                dA += administration(t)
-            metabolism = eliminations[i](C)
-            dA -= metabolism
-            if i != n-1:
-                dAs[16*(i+1):16*(i+2)] += metabolism * gc[i]
-        return dAs
+        dA[0, :] += administration(t)
+        dA += distribution(C)
+        dA += metabolism_and_excretion(C)
+        return dA.flatten()
     return inner
