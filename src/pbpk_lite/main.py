@@ -55,44 +55,42 @@ class model:
     ...     (6.97, 5.33, 5.24), (0.0022448, 0.01209, 0.101),
     ...     (314.469, 330.468, 344.451))
     >>> m.set_patient(bw=70)
-    >>> m.set_elimination((247, 998, 8.94), (0, 0, 1.48))
-    >>> doses = [0.053]
-    >>> times = [0, 24*60]
-    >>> t, c = m.simulate(doses, times)
+    >>> m.set_administration([('iv', 0.053, 0, 2)])
+    >>> m.set_metabolism_and_excretion(
+    ...     ((0, 1), (1, 2), (2, -1), (2, -1)),
+    ...     ((6, 247), (6, 998), (6, 8.94), (5, 1.48)))
+    >>> t, c = m.simulate(additional_time=24 * 60)
     """
     def __init__(self):
         """
         Initialize the PBPK model with placeholder parameters.
         
-        Sets up default properties for one substance and two metabolites,
-        patient parameters (body weight=70 kg), and linear hepatic and renal
-        clearance for each substance.
+        Sets up default distribution parameters for a 70 kg patient.
         
         Notes
         -----
         The default parameters are example values and can be replaced using
-        set_substance_and_metabolites(), set_patient(), and set_elimination().
+        set_substance_and_metabolites(), set_patient(),
+        set_administration(), and set_metabolism_and_excretion().
         """
         # placeholder parameters
         logps = (6.97, 5.33, 5.24)
         self.n = len(logps)
         fus = (0.0022448, 0.01209, 0.101)  
-        mms = (314.469, 330.468, 344.451)
+        
         bw = 70
         self.body_weight = bw
-        cl_ls = (247, 998, 8.94)
-        cl_ks = (0, 0, 1.48)
-        volumes = V_function(bw)
-        self.volumes = volumes
+        mms = (314.469, 330.468, 344.451)
+        con = ((0, 1), (1, 2), (2, -1), (2, -1))
+        cls = ((6, 247), (6, 998), (6, 8.94), (5, 1.48))
+        self.volumes = V_function(bw)
 
-
-    def set_substance_and_metabolites(self, logps, fus):
+    def set_substance_and_metabolites(self, logps, fus, mms):
         """
         Set the substance properties that are being investigated.
 
         Updates partition coefficients and metabolite mass ratios based on the
-        physicochemical properties and molecular masses, then regenerates the
-        ODE system.
+        physicochemical properties and molecular masses.
 
         Parameters
         ----------
@@ -107,8 +105,8 @@ class model:
         
         Notes
         -----
-        This method updates the partition_coefficients and
-        gravimetric_coefficients attributes and regenerates the ODE system.
+        This method updates the substance and distribution parameters used by
+        the model.
         The three sequences must have the same nonzero length.
         
         Examples
@@ -119,6 +117,7 @@ class model:
         ...     (314.469, 330.468, 344.451))
         """
 
+        self.molar_masses = mms
         self.n = len(logps)
         self.substance_parameters = logps, fus
         self.distribution = distribution_helper(self.body_weight, logps, fus)
@@ -127,8 +126,7 @@ class model:
         """
         Set the patient's physiological distribution parameters.
 
-        Updates blood flow rates and tissue volumes based on body weight,
-        and regenerates the ODE system with the new patient parameters.
+        Updates blood flow rates and tissue volumes based on body weight.
 
         Parameters
         ----------
@@ -137,9 +135,8 @@ class model:
         
         Notes
         -----
-        This method updates the blood_flows and volumes attributes by
-        applying allometric scaling based on body weight. The ODE system
-        is regenerated to reflect the new physiological parameters.
+        This method updates the volumes and distribution parameters by
+        applying allometric scaling based on body weight.
         Substance and metabolite properties can be set separately using
         set_substance_and_metabolites().
         
@@ -150,67 +147,67 @@ class model:
         """
 
         self.body_weight = bw
-        volumes = V_function(bw)
-        self.volumes = volumes
+        self.volumes = V_function(bw)
         self.distribution = distribution_helper(bw, *self.substance_parameters)
 
     def set_administration(self, regimen):
-        self.administration, self.times = administration_helper(regimen)
-                    
-    def set_metabolism_and_excretion(self, molar_masses, connections, clearances):
         """
-        Set the elimination parameters.
-
-        Updates the elimination function to account for linear clearance
-        from the liver and kidney. The elimination function calculates
-        the outflow of substance from these tissues.
+        Set the administration regimen.
 
         Parameters
         ----------
-        cl_ls : sequence of float
-            Linear clearance values from the liver, with one value for each
-            substance.
-        cl_ks : sequence of float
-            Linear clearance values from the kidney, with one value for each
-            substance.
+        regimen : sequence of sequence
+            Administration entries in the form
+            ``(route, dose, start_time, administration_time)``. Times and
+            doses are expressed in minutes and nanograms, respectively.
+            Supported routes are ``'iv'``, ``'inh'``, and ``'oral'``.
+        """
+        self.administration, self.times = administration_helper(regimen)
+                    
+    def set_metabolism_and_excretion(self, connections, clearances):
+        """
+        Set the metabolism and excretion parameters.
+
+        Updates the metabolism and excretion function to account for linear
+        clearance from the liver and kidney.
+
+        Parameters
+        ----------
+        connections : sequence of sequence of int
+            Parent-to-metabolite connections. Each pair contains the source
+            substance index and the destination index; ``-1`` denotes
+            excretion from the system.
+        clearances : sequence of sequence of float
+            Clearance entries in the form ``(compartment, clearance)``.
         
         Notes
         -----
-        Each clearance function modifies compartments 5 (kidney) and 6 (liver)
-        with linear kinetics: outflow = clearance * concentration. The two
-        sequences must have one value per substance.
+        Clearance is modeled with linear kinetics:
+        ``outflow = clearance * concentration``.
         
         Examples
         --------
         >>> m = model()
-        >>> m.set_elimination((10, 10, 10), (5, 5, 5))
+        >>> m.set_metabolism_and_excretion(
+        ...     ((0, 1), (1, 2), (2, -1)),
+        ...     ((6, 10), (6, 10), (5, 5)))
         """
 
-        self.metabolism_and_excretion = metabolism_helper(molar_masses, connections, clearances)
+        self.metabolism_and_excretion = metabolism_helper(self.molar_masses, connections, clearances)
 
     def simulate(self, additional_time=60):
         """
-        Set the administration regime and simulate the system of ODEs.
-        
-        The `times` array must contain one more time point than the `doses`
-        sequence. Each dose at index `i` is administered at `times[i]`, and
-        the final entry in `times` is the last observation time. The time
-        values are interpreted in minutes and must be strictly increasing.
+        Simulate the configured system of ordinary differential equations.
+
+        Call set_administration() before simulation. The simulation continues
+        for ``additional_time`` minutes after the final configured
+        administration time.
         
         Parameters
         ----------
-        doses : array-like
-            A list of all doses.
-        times : array-like
-            A list of times at which doses are given, plus a final endpoint.
-            This array must have length `len(doses) + 1` and contain
-            strictly increasing values.
-        route_of_administration : {'iv', 'ia', 'inh'}, optional
-            Route used to administer each dose to the parent substance. 'iv'
-            injects the dose into the venous blood compartment, 'ia' into the
-            arterial blood compartment, and 'inh' into the lung compartment.
-            Doses can only be administered to the parent substance; metabolites
-            are produced by the model. The default is 'iv'.
+        additional_time : float, optional
+            Number of minutes to simulate after the final administration time.
+            The default is 60.
         
         Returns
         -------
@@ -227,14 +224,15 @@ class model:
         ...     (6.97, 5.33, 5.24), (0.0022448, 0.01209, 0.101),
         ...     (314.469, 330.468, 344.451))
         >>> m.set_patient(bw=70)
-        >>> m.set_elimination((247, 998, 8.94), (0, 0, 1.48))
-        >>> t_iv, c_iv = m.simulate([0.053], [0, 24*60], route_of_administration='iv')
-        >>> t_inh, c_inh = m.simulate([0.053], [0, 24*60], route_of_administration='inh')
+        >>> m.set_administration([('iv', 0.053, 0, 2)])
+        >>> m.set_metabolism_and_excretion(
+        ...     ((0, 1), (1, 2), (2, -1)),
+        ...     ((6, 247), (6, 998), (5, 1.48)))
+        >>> t, c = m.simulate(additional_time=24 * 60)
         """
 
         odes = system_generator(self.volumes, self.n, self.administration, self.distribution, self.metabolism_and_excretion)
         times = np.append(self.times, additional_time + self.times[-1])
-
         self.t, self.c = solver(odes, times, self.volumes, self.n)
         return self.t, self.c
         
