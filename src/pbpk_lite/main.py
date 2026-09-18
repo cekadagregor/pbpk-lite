@@ -12,6 +12,7 @@ from .solve import solver
 from .ode_system import system_generator
 from .administration import administration_helper
 from .metabolism_and_excretion import metabolism_helper
+from .optimisation import fit_helper
 import numpy as np
 
 class model:
@@ -193,6 +194,8 @@ class model:
         ...     ((6, 10), (6, 10), (5, 5)))
         """
 
+        self.connections = connections
+        self.clearances = clearances
         self.metabolism_and_excretion = metabolism_helper(self.molar_masses, connections, clearances)
 
     def simulate(self, additional_time=60):
@@ -235,6 +238,19 @@ class model:
         times = np.append(self.times, additional_time + self.times[-1])
         self.t, self.c = solver(odes, times, self.volumes, self.n)
         return self.t, self.c
+
+    def fit_clearances(self, t, c):
+        '''best if t, c is iv bolus experimental data'''
+        def f(clearances):
+            self.set_metabolism_and_excretion(self.connections, clearances)
+            return self.simulate(t[-1])
+
+        new_clearances = fit_helper(t, c, f, self.clearances)
+        print(new_clearances)
+        self.metabolism_and_excretion = metabolism_helper(self.substance_parameters, self.connections, new_clearances)
+
+    def fit_oral(self, t, c):
+        pass
         
     def graph_whole(self, name, time_unit='min'):
         """
