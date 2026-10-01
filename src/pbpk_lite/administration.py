@@ -76,3 +76,91 @@ def whole_function_maker(functions, bounds):
 def administration_helper(administration_regimen):
     functions, bounds = prepare_administration_functions(administration_regimen)
     return whole_function_maker(functions, bounds), extract_times(administration_regimen)
+
+class Administration:
+    def __init__(self, route_of_administration, dose, t0=0, duration=0):
+        self.dose = dose
+        self.route_of_administration = route_of_administration
+        self.t0 = t0
+        self.duration = duration
+
+    def __lt__(self, other):
+        return self.t0 < other.t0
+
+    def __str__(self):
+        return f'ADMINISTRATION: ROA: {self.route_of_administration}, dose = {self.dose}, t0 = {self.t0}, duration = {self.duration}'
+
+    def __add__(self, other):
+        if type(other) == Administration:
+            return Regimen(self, other)
+        elif type(other) == Regimen:
+            return other + self
+        else:
+            raise TypeError('Only Regimen and Administration are allowed')
+
+    def repeat(self, n, t):
+        output = Regimen(self)
+        administration_instance = self
+        for i in range(1, n):
+            administration_instance = administration_instance.after(t)
+            output += administration_instance
+        return output
+
+    def at(self, t0):
+        dose = self.dose
+        route_of_administration = self.route_of_administration
+        duration = self.duration
+        return Administration(route_of_administration, dose, t0, duration)
+
+    def after(self, t):
+        dose = self.dose
+        route_of_administration = self.route_of_administration
+        duration = self.duration
+        t0 = self.t0
+        return Administration(route_of_administration, dose, t0 + t, duration)       
+
+class Regimen:
+    def __init__(self, *administrations):
+        self.list = [*administrations]
+        self.list.sort()
+
+    def __str__(self):
+        output = 'REGIMEN:'
+        for i, a in enumerate(self.list):
+            output += f'\n   {i} ' + a.__str__()
+        return output
+
+    def __add__(self, other):
+        if type(other) == Administration:
+            self.list.append(other)
+            return self
+        elif type(other) == Regimen:
+            self.list.extend(other.list)
+            return self
+        else:
+            raise TypeError('Only Regimen and Administration are allowed')
+
+    def repeat(self, n, t):
+        output = self
+        regimen_instance = self
+        for i in range(1, n):
+            regimen_instance = regimen_instance.after(t)
+            output += regimen_instance
+        return output           
+
+    def after(self, t):
+        output = Regimen()
+        for i in self.list:
+            output += i.after(t)
+        return output        
+        
+    def at(self, t0):
+        output = Regimen()
+        origin = self.list[0].t0
+        dt = t0 - origin
+        for i in self.list:
+            output += i.after(dt)
+        return output
+
+    def administration_function(self):
+        return lambda t: 'da_dt'

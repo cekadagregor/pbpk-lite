@@ -195,7 +195,7 @@ class model:
         """
 
         self.connections = connections
-        self.clearances = clearances
+        self.clearances = np.array(clearances)
         self.metabolism_and_excretion = metabolism_helper(self.molar_masses, connections, clearances)
 
     def simulate(self, additional_time=60):
@@ -241,11 +241,16 @@ class model:
 
     def fit_clearances(self, t, c):
         '''best if t, c is iv bolus experimental data'''
-        def f(clearances):
+        starting_clearances = self.clearances
+        def f(scalings):
+            clearances = np.copy(starting_clearances)
+            clearances[:, 1] *= scalings
+            print(clearances)
             self.set_metabolism_and_excretion(self.connections, clearances)
             return self.simulate(t[-1])
 
-        new_clearances = fit_helper(t, c, f, self.clearances)
+        new_clearances = starting_clearances
+        new_clearances[:, 1] *= fit_helper(t, c, f, np.ones(len(starting_clearances[:, 1])))
         print(new_clearances)
         self.metabolism_and_excretion = metabolism_helper(self.substance_parameters, self.connections, new_clearances)
 

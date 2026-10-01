@@ -18,13 +18,16 @@ def function_to_minimise(t_exp, c_exp, x_to_t_and_c_function):
         t, c = x_to_t_and_c_function(x)
         interpolated = interpolation(t, c, t_exp)
         mse = mean_square_error(interpolated, c_exp)
+        print(mse)
         return mse
-    return function_to_minimise
+    return inner
 
 def fit_helper(t_exp, c_exp, x_to_t_and_c_function, x0):
     f = function_to_minimise(t_exp, c_exp, x_to_t_and_c_function)
-    output = minimize(f, x0)
-    if output.succes == False:
+    positive = [[0, None] for i in x0]
+    output = minimize(f, x0, bounds=positive)
+    if output.success == False:
+        print('Failed')
         return x0
     else:
         return output.x
