@@ -1,88 +1,53 @@
 import numpy as np
+import functools
 
-def inhalation_helper(dose, t0, administration_time=10):
-    def inner(t):
-        output = np.zeros(16)
-        t -= t0
-        da_dt = dose/administration_time
-        if t <= administration_time and t >= 0:
-            output[7] += da_dt
-        return output
+max_whole_gut_transit_time = 100*60
+
+def curry_t(mechanism):
+    @functools.wraps(mechanism)
+    def inner(**kwargs):
+        return lambda t: mechanism(t, **kwargs)
     return inner
 
-def placeholder_helper():
-    def inner(t):
-        return np.zeros(16)
-    return inner
+@curry_t
+def inhalation_mechanism(t, dose, duration):
+    flow_vector = np.zeros(16)
+    flow = dose/duration
+    flow_vector[7] += flow
+    return flow_vector
 
-def oral_helper(dose, t0, t_lag=20, scaling_factor=450, shape_parameter=2):
-    def inner(t):
-        output = np.zeros(16)
-        t_max = 100*60 #100 h max whole gut transit time
-        t -= t0
-        if t <= t_max:
-            weibull_distribution_derivative = -(dose*shape_parameter/scaling_factor) * ((t-t_lag)/scaling_factor)**(shape_parameter-1) * np.exp(-((t-t_lag)/scaling_factor)**shape_parameter)
-            if weibull_distribution_derivative < 0:
-                output[6] += -weibull_distribution_derivative
-        return output
-    return inner
+@curry_t
+def oral_mechanism(t, dose, duration = max_whole_gut_transit_time, t_lag=20, scaling_factor=450, shape_parameter=2):
+    flow_vector = np.zeros(16)
+    weibull_distribution_derivative = -(dose*shape_parameter/scaling_factor) * ((t-t_lag)/scaling_factor)**(shape_parameter-1) * np.exp(-((t-t_lag)/scaling_factor)**shape_parameter)
+    if weibull_distribution_derivative < 0:
+        flow_vector[6] += -weibull_distribution_derivative
+    return flow_vector
 
-def iv_infusion_helper(dose, t0, administration_time):
-    def inner(t):
-        output = np.zeros(16)
-        t -= t0
-        da_dt = dose/administration_time
-        if t <= administration_time:
-            output[15] += da_dt
-        return output
-    return inner
+@curry_t
+def iv_infusion_mechanism(t, dose, duration):
+    flow_vector = np.zeros(16)
+    flow = dose/duration
+    flow_vector[15] += flow
+    return flow_vector
 
-def function_maker(route_of_administration, dose, t0, administration_time):
+def helper_constructor(route_of_administration):
     if route_of_administration == 'inh':
-        return inhalation_helper(dose, t0, administration_time), [t0, t0 + administration_time]
-    elif route_of_administration == 'iv':
-        return iv_infusion_helper(dose, t0, administration_time), [t0, t0 + administration_time]
+        return inhalation_mechanism
     elif route_of_administration == 'oral':
-        return oral_helper(dose, t0), [t0, t0 + 100*60]
-
-def prepare_administration_functions(administration_regimen):
-    functions = []
-    bounds = []
-    for administration_instance in administration_regimen:
-        route_of_administration = administration_instance[0]
-        dose = administration_instance[1]
-        t0 = administration_instance[2]
-        administration_time = administration_instance[3]
-        function, bound = function_maker(route_of_administration, dose, t0, administration_time)
-        functions.append(function)
-        bounds.append(bound)
-    return functions, bounds
-
-def extract_times(administration_regimen):
-    administration_regimen = np.array(administration_regimen)
-    times = administration_regimen[:, 2]
-    times = times.astype(float)
-    return times
-
-def whole_function_maker(functions, bounds):
-    def inner(t):
-        output = np.zeros(16)
-        for i, bound in enumerate(bounds):
-            if bound[0] <= t <= bound[1]:
-                output += functions[i](t)
-        return output
-    return inner
-
-def administration_helper(administration_regimen):
-    functions, bounds = prepare_administration_functions(administration_regimen)
-    return whole_function_maker(functions, bounds), extract_times(administration_regimen)
+        return oral_mechanism
+    elif route_of_administration == 'iv':
+        return iv_infusion_mechanism
 
 class Administration:
     def __init__(self, route_of_administration, dose, t0=0, duration=0):
         self.dose = dose
         self.route_of_administration = route_of_administration
         self.t0 = t0
+        if route_of_administration == 'oral' and duration == 0:
+            duration = max_whole_gut_transit_time
         self.duration = duration
+        self.helper = helper_constructor(route_of_administration)
 
     def __lt__(self, other):
         return self.t0 < other.t0
@@ -117,7 +82,17 @@ class Administration:
         route_of_administration = self.route_of_administration
         duration = self.duration
         t0 = self.t0
-        return Administration(route_of_administration, dose, t0 + t, duration)       
+        return Administration(route_of_administration, dose, t0 + t, duration)
+
+    def administration_function(self):
+        f_of_t = self.helper(dose = self.dose, duration = self.duration)
+        def inner(t):
+            output = np.zeros(16)
+            if self.t0 <= t < self.t0 + self.duration:
+                output += f_of_t(t)
+            return output
+        return inner
+
 
 class Regimen:
     def __init__(self, *administrations):
@@ -163,4 +138,13 @@ class Regimen:
         return output
 
     def administration_function(self):
-        return lambda t: 'da_dt'
+        def inner(t):
+            def each(index):
+                administration_instance = self.list[index]
+                f = administration_instance.administration_function()
+                if index == -1:
+                    return f(t)
+                else:
+                    return f(t) + each(index - 1)
+            return each(0)
+        return inner
