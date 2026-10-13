@@ -1,10 +1,8 @@
 import numpy as np
-import functools
 
 max_whole_gut_transit_time = 100*60
 
 def curry_t(mechanism):
-    @functools.wraps(mechanism)
     def inner(**kwargs):
         return lambda t: mechanism(t, **kwargs)
     return inner
