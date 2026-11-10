@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, Bounds
 
 def interpolation(t_predicted, c_predicted, t_experimental):
     n = c_predicted.shape[0]
@@ -9,24 +9,22 @@ def interpolation(t_predicted, c_predicted, t_experimental):
         result[i, :] = interpolation_instance
     return result
 
-def mean_square_error(c_predicted, c_experimental):
-    square_error = (c_predicted - c_experimental)**2
-    return np.mean(square_error)
-
-def function_to_minimise(t_exp, c_exp, x_to_t_and_c_function):
-    def inner(x):
+def function_to_minimise(t_exp, cs_exp, x_to_t_and_c_function, x0):
+    cs_exp = np.asarray(cs_exp)
+    def inner(scaling):
+        x = scaling * x0
         t, c = x_to_t_and_c_function(x)
         interpolated = interpolation(t, c, t_exp)
-        mse = mean_square_error(interpolated, c_exp)
+        mse = np.mean((interpolated - cs_exp) ** 2)
         return mse
-    return function_to_minimise
+    return inner
 
-def fit_helper(t_exp, c_exp, x_to_t_and_c_function, x0):
-    f = function_to_minimise(t_exp, c_exp, x_to_t_and_c_function)
-    output = minimize(f, x0)
-    if output.succes == False:
+def fit_helper(t_exp, cs_exp, x_to_t_and_c_function, x0):
+    f = function_to_minimise(t_exp, cs_exp, x_to_t_and_c_function, x0)
+    output = minimize(f, np.ones(len(x0)), method='Nelder-Mead', bounds=Bounds(lb=1e-6, ub=np.inf))
+    if output.success == False:
         return x0
     else:
-        return output.x
+        return output.x*x0
 
 

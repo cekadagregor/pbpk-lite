@@ -194,8 +194,8 @@ class model:
         ...     ((6, 10), (6, 10), (5, 5)))
         """
 
-        self.connections = connections
-        self.clearances = clearances
+        self.connections = np.array(connections)
+        self.clearances = np.array(clearances)
         self.metabolism_and_excretion = metabolism_helper(self.molar_masses, connections, clearances)
 
     def simulate(self, additional_time=60):
@@ -239,15 +239,21 @@ class model:
         self.t, self.c = solver(odes, times, self.volumes, self.n)
         return self.t, self.c
 
-    def fit_clearances(self, t, c):
+    def fit_clearances(self, t, c, report=True):
         '''best if t, c is iv bolus experimental data'''
-        def f(clearances):
-            self.set_metabolism_and_excretion(self.connections, clearances)
+        def add_positions(cl_only):
+            clearances = self.clearances
+            clearances[:, 1] = cl_only
+            return clearances
+
+        def f(clearances_only):
+            self.set_metabolism_and_excretion(self.connections, add_positions(clearances_only))
             return self.simulate(t[-1])
 
-        new_clearances = fit_helper(t, c, f, self.clearances)
-        print(new_clearances)
-        self.metabolism_and_excretion = metabolism_helper(self.substance_parameters, self.connections, new_clearances)
+        new_clearances = fit_helper(t, c, f, self.clearances[:, 1])
+        if report == True:
+            print(f'the new clearances are {new_clearances}')
+        self.metabolism_and_excretion = metabolism_helper(self.molar_masses, self.connections, add_positions(new_clearances))
 
     def fit_oral(self, t, c):
         pass
