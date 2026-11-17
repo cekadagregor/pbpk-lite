@@ -1,9 +1,11 @@
 """
 Main module for PBPK (Physiologically Based Pharmacokinetic) modeling.
 
-This module provides the core model class for setting up and solving
+This module provides the core `model` class for setting up and solving
 PBPK models with customizable substance and metabolite properties,
-patient parameters, and elimination pathways.
+patient physiology, administration regimens, and elimination pathways.
+It also exposes plotting and parameter-fitting helpers for comparing
+simulation output and experimental concentrations.
 """
 
 from .distribution_params import V_function, distribution_helper
@@ -20,9 +22,11 @@ class model:
     Physiologically Based Pharmacokinetic (PBPK) model class.
     
     This class manages the setup and solution of PBPK models, handling
-    substance properties, patient parameters, and drug elimination pathways.
-    It integrates partition coefficients, blood flows, tissue volumes, and
-    elimination kinetics to solve the system of ordinary differential equations.
+    substance properties, patient parameters, administration regimens, and
+    drug elimination pathways. It combines partition coefficients, blood flow,
+    tissue volumes, and linear elimination kinetics to solve the system of
+    ordinary differential equations defining the model.
+    
     The implementation uses nanograms (ng) for doses and amounts, milliliters
     (mL) for volumes, milliliters per minute (mL/min) for blood flows and
     clearances, nanograms per milliliter (ng/mL) for concentrations, and
@@ -62,7 +66,8 @@ class model:
     ...     ((6, 247), (6, 998), (6, 8.94), (5, 1.48)))
     >>> t, c = m.simulate(additional_time=24 * 60)
     """
-    default_oral_params=(20, 450, 2)
+    default_oral_params = (20, 450, 2)
+
     def __init__(self):
         """
         Initialize the PBPK model with placeholder parameters.
@@ -75,11 +80,9 @@ class model:
         set_substance_and_metabolites(), set_patient(),
         set_administration(), and set_metabolism_and_excretion().
         """
-        # placeholder parameters
         logps = (6.97, 5.33, 5.24)
         self.n = len(logps)
-        fus = (0.0022448, 0.01209, 0.101)  
-        
+        fus = (0.0022448, 0.01209, 0.101)
         bw = 70
         self.body_weight = bw
         mms = (314.469, 330.468, 344.451)
@@ -100,16 +103,16 @@ class model:
             Log octanol-water partition coefficients for the substance and
             metabolites.
         fus : sequence of float
-            Fractions unbound in blood, with one value for each substance.
+            Fraction unbound in blood for each substance.
         mms : sequence of float
-            Molecular masses, with one value for each substance. The sequence
-            order defines the parent substance followed by its metabolites.
+            Molecular masses, one per substance. The first entry is the parent
+            substance and the remaining entries are metabolites.
         
         Notes
         -----
-        This method updates the substance and distribution parameters used by
-        the model.
-        The three sequences must have the same nonzero length.
+        The three sequences must have the same nonzero length. The values are
+        used to recalculate the tissue partition coefficients and related model
+        parameters.
         
         Examples
         --------
@@ -126,21 +129,20 @@ class model:
 
     def set_patient(self, bw):
         """
-        Set the patient's physiological distribution parameters.
+        Set the patient's physiological parameters.
 
-        Updates blood flow rates and tissue volumes based on body weight.
+        Updates blood-flow rates and tissue volumes based on body weight.
 
         Parameters
         ----------
         bw : float
-            Patient's body weight in kilograms.
+            Patient body weight in kilograms.
         
         Notes
         -----
-        This method updates the volumes and distribution parameters by
-        applying allometric scaling based on body weight.
-        Substance and metabolite properties can be set separately using
-        set_substance_and_metabolites().
+        This method updates the physiological distribution terms by applying
+        allometric scaling based on body weight. Substance and metabolite
+        properties can be set separately using set_substance_and_metabolites().
         
         Examples
         --------
@@ -160,19 +162,29 @@ class model:
         ----------
         regimen : sequence of sequence
             Administration entries in the form
-            ``(route, dose, start_time, administration_time)``. Times and
-            doses are expressed in minutes and nanograms, respectively.
+            ``(route, dose, start_time, administration_time)``.
+            Times are expressed in minutes and doses in nanograms.
             Supported routes are ``'iv'``, ``'inh'``, and ``'oral'``.
+        oral_params : tuple, optional
+            Parameters used for oral absorption when the route is ``'oral'``.
+            The tuple is passed as ``(t_lag, scaling_factor, shape_parameter)``.
+            The default is ``(20, 450, 2)``.
+        
+        Notes
+        -----
+        Oral dosing uses a Weibull absorption function. The optional
+        ``oral_params`` argument permits a custom delay, scaling, and shape for
+        the absorption profile.
         """
         self.latest_regimen = regimen
         self.administration, self.times = administration_helper(regimen, oral_params)
-                    
+
     def set_metabolism_and_excretion(self, connections, clearances):
         """
         Set the metabolism and excretion parameters.
 
-        Updates the metabolism and excretion function to account for linear
-        clearance from the liver and kidney.
+        Updates the metabolic relationship between substances and the linear
+        clearance rates associated with each compartment.
 
         Parameters
         ----------
@@ -242,7 +254,23 @@ class model:
         return self.t, self.c
 
     def fit_clearances(self, t, c, report=True):
-        '''best if t, c is iv bolus experimental data'''
+        """
+        Fit linear clearance parameters to experimental concentration data.
+
+        This helper is intended for IV-bolus or IV-infusion concentration data
+        where the clearances are known to be linear and can be adjusted to
+        improve agreement between simulation and experiment.
+
+        Parameters
+        ----------
+        t : array-like
+            Time points for the experimental data.
+        c : array-like
+            Measured concentration data. The shape should match the model output
+            in the same compartment ordering used by the simulation.
+        report : bool, optional
+            If True, print the fitted clearance values after optimization.
+        """
         def add_positions(cl_only):
             clearances = self.clearances
             clearances[:, 1] = cl_only
@@ -258,7 +286,22 @@ class model:
         self.metabolism_and_excretion = metabolism_helper(self.molar_masses, self.connections, add_positions(new_clearances))
 
     def fit_oral(self, t, c, report=True):
-        '''best if you first fit iv bolus'''
+        """
+        Fit the oral absorption parameters to concentration data.
+
+        This helper optimizes the parameters passed to set_administration() when
+        a regimen includes oral dosing. It is most useful after fitting an IV
+        regimen so that the systemic distribution is already well matched.
+
+        Parameters
+        ----------
+        t : array-like
+            Time points for the experimental data.
+        c : array-like
+            Measured concentration data.
+        report : bool, optional
+            If True, print the fitted oral parameters after optimization.
+        """
         def f(oral_params):
             self.set_administration(self.latest_regimen, oral_params)
             return self.simulate(t[-1])
@@ -275,7 +318,8 @@ class model:
         Parameters
         ----------
         name : str
-            File path to save the figure.
+            File path to save the figure. When the model contains more than one
+            substance, the file name is suffixed with the substance index.
         time_unit : {'min', 'hours', 'days'}, optional
             Unit used for the x-axis label and values. The default is 'min'.
         """
@@ -288,29 +332,31 @@ class model:
 
     def graph_venous(self, name, limit_of_detection=None, log=True, time_unit='min', substance_index=0):
         """
-        Graph the concentrations in the venous blood compartment and save the figure.
+        Graph the venous blood concentrations and save the figure.
 
         Parameters
         ----------
         name : str
             File path to save the figure.
         limit_of_detection : float, optional
-            Limit of detection to be indicated on the graph.
+            Limit of detection to be marked on the plot.
         log : bool, optional
             Whether to use a logarithmic y-axis. The default is True.
         time_unit : {'min', 'hours', 'days'}, optional
             Unit used for the x-axis label and values. The default is 'min'.
+        substance_index : int, optional
+            Substance index to plot. The default is 0.
         """
         graph_venous_helper(self.t, self.c, name, limit_of_detection, log, time_unit, substance_index)
 
     def graph_compartments(self, substance_and_compartment_indexes, name, time_unit='min'):
         """
-        Graph the concentrations in selected compartments and save the figure.
+        Graph selected compartments and save the figure.
 
         Parameters
         ----------
-        compartments : list of str or int
-            List of compartment names or indices to be graphed.
+        substance_and_compartment_indexes : sequence of tuple
+            Sequence of ``(substance_index, compartment_index)`` pairs to plot.
         name : str
             File path to save the figure.
         time_unit : {'min', 'hours', 'days'}, optional
