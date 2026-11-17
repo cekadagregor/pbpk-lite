@@ -280,13 +280,13 @@ class model:
             Unit used for the x-axis label and values. The default is 'min'.
         """
         if self.n == 1:
-            graph_whole_helper(self.t, self.c, name, time_unit=time_unit)
+            graph_whole_helper(self.t, self.c, name, time_unit)
         else:
             for i in range(self.n):
                 new_name = name + str(i)
-                graph_whole_helper(self.t, self.c, new_name, time_unit=time_unit, substance_index=i)         
+                graph_whole_helper(self.t, self.c, new_name, time_unit, substance_index=i)         
 
-    def graph_venous(self, name, limit_of_detection=None, log=True, time_unit='min'):
+    def graph_venous(self, name, limit_of_detection=None, log=True, time_unit='min', substance_index=0):
         """
         Graph the concentrations in the venous blood compartment and save the figure.
 
@@ -301,9 +301,9 @@ class model:
         time_unit : {'min', 'hours', 'days'}, optional
             Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_venous_helper(self.t, self.c, name, limit_of_detection, log, time_unit=time_unit)
+        graph_venous_helper(self.t, self.c, name, limit_of_detection, log, time_unit, substance_index)
 
-    def graph_compartments(self, compartments, name, time_unit='min'):
+    def graph_compartments(self, substance_and_compartment_indexes, name, time_unit='min'):
         """
         Graph the concentrations in selected compartments and save the figure.
 
@@ -316,4 +316,4 @@ class model:
         time_unit : {'min', 'hours', 'days'}, optional
             Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_compartments_helper(self.t, self.c, compartments, name, time_unit=time_unit)
+        graph_compartments_helper(self.t, self.c, substance_and_compartment_indexes, name, time_unit)

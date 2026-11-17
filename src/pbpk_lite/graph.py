@@ -26,8 +26,7 @@ def _resolve_time_axis(time, time_unit='min'):
         return time / (60 * 24), 'Time (days)'
     raise ValueError("time_unit must be one of 'min', 'hours', or 'days'")
 
-
-def graph_whole_helper(time, concentrations, save_as, time_unit='min', substance_index=0):
+def graph_whole_helper(time, concentrations, save_as, time_unit, substance_index):
     plt.rcParams['font.size'] = 8
     fig, axs = plt.subplots(4, 4, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
     time_values, time_label = _resolve_time_axis(time, time_unit)
@@ -42,11 +41,11 @@ def graph_whole_helper(time, concentrations, save_as, time_unit='min', substance
     plt.savefig(save_as, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
-def graph_venous_helper(time, concentrations, save_as, limit_of_detection, log, time_unit='min'):
+def graph_venous_helper(time, concentrations, save_as, limit_of_detection, log, time_unit, substance_index):
     plt.rcParams['font.size'] = 8
     fig, axs = plt.subplots(1, 1, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
     time_values, time_label = _resolve_time_axis(time, time_unit)
-    axs.plot(time_values, concentrations[15, :])
+    axs.plot(time_values, concentrations[substance_index, 15, :])
     if limit_of_detection is not None:
         axs.axhline(y=limit_of_detection, color='r', linestyle='--')
     axs.set_facecolor('#F2F2F2')
@@ -58,12 +57,15 @@ def graph_venous_helper(time, concentrations, save_as, limit_of_detection, log, 
     plt.close(fig)
 
 
-def graph_compartments_helper(time, concentrations, compartments, save_as, time_unit='min'):
+def graph_compartments_helper(time, concentrations, substance_and_compartment_indexes, save_as, time_unit):
     plt.rcParams['font.size'] = 8
     fig, axs = plt.subplots(1, 1, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
     time_values, time_label = _resolve_time_axis(time, time_unit)
-    for compartment in compartments:
-        axs.plot(time_values, concentrations[identify_compartment(compartment), :], label=compartment)
+    for substance_and_compartment_index in substance_and_compartment_indexes:
+        substance_index = substance_and_compartment_index[0]
+        compartment_index = substance_and_compartment_index[1]
+        label_str = str(substance_index) + ' ' + identify_compartment(compartment_index)
+        axs.plot(time_values, concentrations[substance_index, compartment_index, :], label=label_str)
     axs.set_facecolor('#F2F2F2')
     axs.set_xlabel(time_label)
     axs.set_ylabel('Concentration (ng/mL)')
