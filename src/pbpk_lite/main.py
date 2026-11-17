@@ -324,7 +324,7 @@ class model:
             Unit used for the x-axis label and values. The default is 'min'.
         """
         if self.n == 1:
-            graph_whole_helper(self.t, self.c, name, time_unit)
+            graph_whole_helper(self.t, self.c, name, time_unit, 0)
         else:
             for i in range(self.n):
                 new_name = name + str(i)
