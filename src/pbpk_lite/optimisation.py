@@ -27,4 +27,19 @@ def fit_helper(t_exp, cs_exp, x_to_t_and_c_function, x0):
     else:
         return output.x*x0
 
+def fit_helper_oral(t_exp, cs_exp, x_to_t_and_c_function, x0):
+    x0_cont = x0[:-1]
+    t_max = 100*60
+    results = []
+    for n in range(2, 20):
+        def f(scaling, n=n):
+            x = scaling * x0_cont
+            t, c = x_to_t_and_c_function(np.append(x, n))
+            return np.mean((interpolation(t, c, t_exp) - cs_exp) ** 2)
+        out = minimize(f, np.ones(len(x0_cont)), method='Nelder-Mead')
+        results.append((out.fun, n, out.x * x0_cont))
+    best = min(results, key=lambda r: r[0])
+    return *best[2], best[1]
+    
+
 

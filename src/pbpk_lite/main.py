@@ -12,7 +12,7 @@ from .solve import solver
 from .ode_system import system_generator
 from .administration import administration_helper
 from .metabolism_and_excretion import metabolism_helper
-from .optimisation import fit_helper
+from .optimisation import fit_helper, fit_helper_oral
 import numpy as np
 
 class model:
@@ -62,6 +62,7 @@ class model:
     ...     ((6, 247), (6, 998), (6, 8.94), (5, 1.48)))
     >>> t, c = m.simulate(additional_time=24 * 60)
     """
+    default_oral_params=(20, 450, 2)
     def __init__(self):
         """
         Initialize the PBPK model with placeholder parameters.
@@ -151,7 +152,7 @@ class model:
         self.volumes = V_function(bw)
         self.distribution = distribution_helper(bw, *self.substance_parameters)
 
-    def set_administration(self, regimen):
+    def set_administration(self, regimen, oral_params=default_oral_params):
         """
         Set the administration regimen.
 
@@ -163,7 +164,8 @@ class model:
             doses are expressed in minutes and nanograms, respectively.
             Supported routes are ``'iv'``, ``'inh'``, and ``'oral'``.
         """
-        self.administration, self.times = administration_helper(regimen)
+        self.latest_regimen = regimen
+        self.administration, self.times = administration_helper(regimen, oral_params)
                     
     def set_metabolism_and_excretion(self, connections, clearances):
         """
@@ -255,8 +257,16 @@ class model:
             print(f'the new clearances are {new_clearances}')
         self.metabolism_and_excretion = metabolism_helper(self.molar_masses, self.connections, add_positions(new_clearances))
 
-    def fit_oral(self, t, c):
-        pass
+    def fit_oral(self, t, c, report=True):
+        '''best if you first fit iv bolus'''
+        def f(oral_params):
+            self.set_administration(self.latest_regimen, oral_params)
+            return self.simulate(t[-1])
+
+        new_oral_params = fit_helper_oral(t, c, f, self.default_oral_params)
+        if report == True:
+            print(f'the new clearances are {new_oral_params}')
+        self.default_oral_params = new_oral_params
         
     def graph_whole(self, name, time_unit='min'):
         """

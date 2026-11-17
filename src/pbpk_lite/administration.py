@@ -37,15 +37,15 @@ def iv_infusion_helper(dose, t0, administration_time):
         return output
     return inner
 
-def function_maker(route_of_administration, dose, t0, administration_time):
+def function_maker(route_of_administration, dose, t0, administration_time, oral_params):
     if route_of_administration == 'inh':
         return inhalation_helper(dose, t0, administration_time), [t0, t0 + administration_time]
     elif route_of_administration == 'iv':
         return iv_infusion_helper(dose, t0, administration_time), [t0, t0 + administration_time]
     elif route_of_administration == 'oral':
-        return oral_helper(dose, t0), [t0, t0 + 100*60]
+        return oral_helper(dose, t0, *oral_params), [t0, t0 + 100*60]
 
-def prepare_administration_functions(administration_regimen):
+def prepare_administration_functions(administration_regimen, oral_params):
     functions = []
     bounds = []
     for administration_instance in administration_regimen:
@@ -53,7 +53,7 @@ def prepare_administration_functions(administration_regimen):
         dose = administration_instance[1]
         t0 = administration_instance[2]
         administration_time = administration_instance[3]
-        function, bound = function_maker(route_of_administration, dose, t0, administration_time)
+        function, bound = function_maker(route_of_administration, dose, t0, administration_time, oral_params)
         functions.append(function)
         bounds.append(bound)
     return functions, bounds
@@ -73,6 +73,6 @@ def whole_function_maker(functions, bounds):
         return output
     return inner
 
-def administration_helper(administration_regimen):
-    functions, bounds = prepare_administration_functions(administration_regimen)
+def administration_helper(administration_regimen, oral_params):
+    functions, bounds = prepare_administration_functions(administration_regimen, oral_params)
     return whole_function_maker(functions, bounds), extract_times(administration_regimen)
