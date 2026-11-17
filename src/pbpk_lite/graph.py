@@ -27,13 +27,13 @@ def _resolve_time_axis(time, time_unit='min'):
     raise ValueError("time_unit must be one of 'min', 'hours', or 'days'")
 
 
-def graph_whole_helper(time, concentrations, save_as, time_unit='min'):
+def graph_whole_helper(time, concentrations, save_as, time_unit='min', substance_index=0):
     plt.rcParams['font.size'] = 8
     fig, axs = plt.subplots(4, 4, layout='constrained', sharex=True, figsize=(6.27, 3.5), dpi=300)
     time_values, time_label = _resolve_time_axis(time, time_unit)
     comp = 0
     for i in matrix_index():
-        axs[i].plot(time_values, concentrations[comp, :])
+        axs[i].plot(time_values, concentrations[substance_index, comp, :])
         axs[i].set_title(identify_compartment(comp))
         axs[i].set_facecolor('#F2F2F2')
         comp += 1

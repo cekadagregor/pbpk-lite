@@ -279,7 +279,12 @@ class model:
         time_unit : {'min', 'hours', 'days'}, optional
             Unit used for the x-axis label and values. The default is 'min'.
         """
-        graph_whole_helper(self.t, self.c, name, time_unit=time_unit)
+        if self.n == 1:
+            graph_whole_helper(self.t, self.c, name, time_unit=time_unit)
+        else:
+            for i in range(self.n):
+                new_name = name + str(i)
+                graph_whole_helper(self.t, self.c, new_name, time_unit=time_unit, substance_index=i)         
 
     def graph_venous(self, name, limit_of_detection=None, log=True, time_unit='min'):
         """
